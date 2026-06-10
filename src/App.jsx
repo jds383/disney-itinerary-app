@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { tripConfig } from "./trip.config";
 import { Itinerary } from "./Itinerary";
 
-const WORKER_URL = "https://disney-ll-proxy.45-reactor-puritan.workers.dev";
+const WORKER_URL = "https://disney-intinerary-app.45-reactor-puritan.workers.dev";
 
 export const LL_STATUS = {
   FIRST:    "Pre-Book (1st)",
