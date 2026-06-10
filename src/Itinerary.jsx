@@ -831,7 +831,7 @@ export function Itinerary({ view, setView, prefs, rides = [], syncing, loading, 
   const w_onLLStatus  = (rideId, status)     => onLLStatus(rideId, status, rides.find(r => r.id === rideId), saveMetaToNotion);
 
   return (
-    <div style={{ minHeight:"100vh", background:"#FBF7F2", fontFamily:"'DM Sans',sans-serif", padding:"16px 20px 40px" }}>
+    <div style={{ fontFamily:"'DM Sans',sans-serif", padding:"16px 20px 0" }}>
       <div style={{ maxWidth:480, margin:"0 auto" }}>
 
         {/* Title + countdown */}

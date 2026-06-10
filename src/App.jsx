@@ -272,7 +272,7 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#FBF7F2", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#FBF7F2", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
         * { box-sizing: border-box; }
@@ -381,24 +381,26 @@ export default function App() {
         .summary-meta-row { display: flex; flex-wrap: nowrap; gap: 4px; margin-top: 4px; }
       `}</style>
 
-      <Itinerary
-        view={view}
-        setView={setView}
-        prefs={prefs}
-        rides={rides}
-        syncing={syncing}
-        loading={loading}
-        syncError={syncError}
-        onPref={handlePref}
-        onNotes={handleNotes}
-        onClosed={handleClosed}
-        onRdNom={handleRdNom}
-        onRdConfirm={handleRdConfirm}
-        onLLStatus={handleLLStatus}
-      />
+      <div style={{ flex: 1 }}>
+        <Itinerary
+          view={view}
+          setView={setView}
+          prefs={prefs}
+          rides={rides}
+          syncing={syncing}
+          loading={loading}
+          syncError={syncError}
+          onPref={handlePref}
+          onNotes={handleNotes}
+          onClosed={handleClosed}
+          onRdNom={handleRdNom}
+          onRdConfirm={handleRdConfirm}
+          onLLStatus={handleLLStatus}
+        />
+      </div>
 
       {/* ── App Footer ── */}
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 32px", textAlign: "center" }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "16px 20px 32px", textAlign: "center" }}>
         <div style={{ fontSize: 10, color: "#CCC", fontFamily: "'DM Sans',sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
           {tripConfig.name}
         </div>
