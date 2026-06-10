@@ -512,11 +512,11 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides, onS
   const activeRides = rides.filter((r) => !isClosed(r.id, prefs));
   const scored      = activeRides.map((r) => ({ ...r, score: calcScore(r.id, prefs) })).filter((r) => r.score !== 0).sort((a, b) => b.score - a.score);
 
-  if (scored.length === 0) return null;
-
   const anyLLSelected = rides.some((r) => prefs[r.id]?.llStatus);
-  const [llOpen, setLlOpen] = useState(anyLLSelected);
+  const [llOpen, setLlOpen]   = useState(anyLLSelected);
   const [topOpen, setTopOpen] = useState(true);
+
+  if (scored.length === 0) return null;
 
   const rdConfirmed  = prefs[`rdc_${parkId}`] ?? null;
   const rdNominees   = activeRides.filter((r) => prefs[r.id]?.rdNom);
