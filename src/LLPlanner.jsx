@@ -1,15 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { tripConfig } from "./trip.config";
 
-const WORKER_URL = "https://disney-ll-proxy.45-reactor-puritan.workers.dev";
+const WORKER_URL = "https://disney-intinerary-app.45-reactor-puritan.workers.dev";
 
-const PEOPLE = [
-  { id: "J", family: 1 }, { id: "A", family: 1 },
-  { id: "w", family: 1 }, { id: "r", family: 1 },
-  { id: "T", family: 2 }, { id: "B", family: 2 },
-  { id: "t", family: 2 }, { id: "q", family: 2 }, { id: "b", family: 2 },
-];
-const FAMILY1 = PEOPLE.filter((p) => p.family === 1).map((p) => p.id);
-const FAMILY2 = PEOPLE.filter((p) => p.family === 2).map((p) => p.id);
+const PEOPLE = tripConfig.people;
+const PEOPLE_IDS = PEOPLE.map((p) => p.id);
 
 const PREF_SCORES = { must: 5, like: 2, neutral: 0, skip: -1 };
 const PREF_KEYS   = ["must", "like", "neutral", "skip"];
@@ -266,7 +261,7 @@ function saveStorage(data) {
 // ── Notion API ────────────────────────────────────────────────────────────────
 
 async function fetchAllVotes() {
-  const parks = ["mk", "ep", "hs"];
+  const parks = tripConfig.parks;
   const [votesResults, metaData] = await Promise.all([
     Promise.all(parks.map((park) =>
       fetch(`${WORKER_URL}/votes?park=${park}`).then((r) => r.json())
@@ -360,8 +355,8 @@ function totalVotes(rideId, prefs) {
   return PEOPLE.filter((p) => prefs[rideId]?.prefs?.[p.id]).length;
 }
 function scoreColorClass(s) {
-  if (s >= 20) return "score-hi";
-  if (s >= 8)  return "score-md";
+  if (s >= 14) return "score-hi";
+  if (s >= 6)  return "score-md";
   if (s >= 0)  return "score-lo";
   return "score-ng";
 }
@@ -424,7 +419,7 @@ function RideCard({ ride, prefs, onPref, onNotes, onClosed, onRdNom, syncing }) 
   const votes  = totalVotes(ride.id, prefs);
   const closed = isClosed(ride.id, prefs);
   const rdNom  = prefs[ride.id]?.rdNom ?? false;
-  const pct    = Math.round((votes / 9) * 100);
+  const pct    = Math.round((votes / PEOPLE.length) * 100);
   const notes  = prefs[ride.id]?.notes ?? "";
 
   const metaParts = [
@@ -435,8 +430,8 @@ function RideCard({ ride, prefs, onPref, onNotes, onClosed, onRdNom, syncing }) 
     ride.hours ?? null,
   ].filter(Boolean).join(" · ");
 
-  const renderFamily = (members) =>
-    members.map((pid) => {
+  const renderPeople = (ids) =>
+    ids.map((pid) => {
       const cur = prefs[ride.id]?.prefs?.[pid] ?? null;
       const isSyncing = syncing[`${ride.id}_${pid}`];
       return (
@@ -471,8 +466,7 @@ function RideCard({ ride, prefs, onPref, onNotes, onClosed, onRdNom, syncing }) 
         {!closed && <div className="prog"><div className="prog-fill" style={{ width: `${pct}%`, background: pct === 100 ? "#1A6B4A" : "#2C5F8A" }} /></div>}
       </div>
       <div className={`prefs${closed ? " section-closed" : ""}`}>
-        <div className="fam-blk"><div className="fam-lbl">S Family</div>{renderFamily(FAMILY1)}</div>
-        <div className="fam-blk"><div className="fam-lbl">M Family</div>{renderFamily(FAMILY2)}</div>
+        <div className="fam-blk">{renderPeople(PEOPLE_IDS)}</div>
       </div>
       <div className={`notes-sec${closed ? " section-closed" : ""}`}>
         <textarea className="notes-inp" placeholder="Notes..." rows={2} defaultValue={notes} onBlur={(e) => onNotes(ride.id, e.target.value)} />
@@ -1077,10 +1071,10 @@ export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, s
   const parkRides = RIDES.filter((r) => r.park === parkId);
 
   const needsRating = parkRides.filter((r) =>
-    !isClosed(r.id, prefs) && totalVotes(r.id, prefs) < 9
+    !isClosed(r.id, prefs) && totalVotes(r.id, prefs) < PEOPLE.length
   );
   const ratedAndClosed = parkRides.filter((r) =>
-    isClosed(r.id, prefs) || totalVotes(r.id, prefs) === 9
+    isClosed(r.id, prefs) || totalVotes(r.id, prefs) === PEOPLE.length
   );
 
   const cardProps = { prefs, onPref, onNotes, onClosed, onRdNom, syncing };

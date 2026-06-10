@@ -559,9 +559,9 @@ function CollapsedDayHeader({ day, onFocus, onAdd }) {
 
   // Format date: "Tuesday, Aug 11"
   const d = new Date(day.date + "T12:00:00");
-  const dowFull = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getDay()];
+  const dowShort = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
   const monShort = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()];
-  const dateLabel = `${dowFull}, ${monShort} ${d.getDate()}`;
+  const dateLabel = `${dowShort}, ${monShort} ${d.getDate()}`;
 
   // Location label: deduplicate if start === end
   const locLabel = (!day.locEnd || day.locStart === day.locEnd)
@@ -580,10 +580,13 @@ function CollapsedDayHeader({ day, onFocus, onAdd }) {
         transition: "background 0.15s",
       }}
     >
-      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#1A1A1A", fontFamily: "'DM Sans',sans-serif", whiteSpace: "nowrap" }}>{dateLabel}</div>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", overflow: "hidden" }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "#1A1A1A", fontFamily: "'DM Sans',sans-serif", whiteSpace: "nowrap", flexShrink: 0 }}>{dateLabel}</span>
         {locLabel && (
-          <div style={{ fontSize: 11, color: "#AAA", fontFamily: "'DM Sans',sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{locLabel}</div>
+          <>
+            <span style={{ fontSize: 12, color: "#CCC", margin: "0 6px", flexShrink: 0 }}>·</span>
+            <span style={{ fontSize: 12, color: "#888", fontFamily: "'DM Sans',sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{locLabel}</span>
+          </>
         )}
       </div>
       {showWeather && day.latStart && (
