@@ -294,8 +294,8 @@ function isPreBookFull(parkId, prefs, rides) {
 
 // ── Sort group for LL ranking ─────────────────────────────────────────────────
 
-function sortTierGroup(group, parkId, prefs) {
-  const full = isPreBookFull(parkId, prefs, allRides);
+function sortTierGroup(group, parkId, prefs, rides = []) {
+  const full = isPreBookFull(parkId, prefs, rides);
   const prebooked = (r) => prefs[r.id]?.llStatus === LL_STATUS.FIRST || prefs[r.id]?.llStatus === LL_STATUS.PREBOOK;
   const second    = (r) => prefs[r.id]?.llStatus === LL_STATUS.SECOND;
   const later     = (r) => prefs[r.id]?.llStatus === LL_STATUS.LATER;
@@ -388,7 +388,7 @@ function RideCard({ ride, prefs, onPref, onNotes, onClosed, onRdNom, syncing }) 
 
 // ── LL Status Menu ────────────────────────────────────────────────────────────
 
-function LLStatusMenu({ ride, prefs, parkId, onLLStatus }) {
+function LLStatusMenu({ ride, prefs, parkId, onLLStatus, rides: allRides = [] }) {
   const [open, setOpen] = useState(false);
   const [openUp, setOpenUp] = useState(false);
   const btnRef = useRef(null);
@@ -454,7 +454,7 @@ function LLStatusMenu({ ride, prefs, parkId, onLLStatus }) {
 
 // ── Rank Item ─────────────────────────────────────────────────────────────────
 
-function RankItem({ r, num, prefs, parkId, onLLStatus }) {
+function RankItem({ r, num, prefs, parkId, onLLStatus, rides = [] }) {
   const llStatus  = prefs[r.id]?.llStatus ?? null;
   const isDemoted = llStatus === LL_STATUS.DONTBOOK;
   const isRD      = r.isRD ?? false;
@@ -479,7 +479,7 @@ function RankItem({ r, num, prefs, parkId, onLLStatus }) {
         {isRD && <span className="r-pill rd-tag">RD ✓</span>}
         {isEE && !isDemoted && <span className="r-pill ee-tag">EE</span>}
         {r.visa && !isDemoted && <span className="r-pill visa-tag">Visa</span>}
-        <LLStatusMenu ride={r} prefs={prefs} parkId={parkId} onLLStatus={onLLStatus} />
+        <LLStatusMenu ride={r} prefs={prefs} parkId={parkId} onLLStatus={onLLStatus} rides={rides} />
       </div>
       {!isDemoted && (sellout || standby) && (
         <div className="r-item-meta">
@@ -590,7 +590,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
       const isRD = r.id === rdConfirmed;
       return (
         <div key={r.id} style={{ position: "relative" }}>
-          <RankItem r={{ ...r, isRD }} num={num} prefs={prefs} parkId={parkId} onLLStatus={onLLStatus} />
+          <RankItem r={{ ...r, isRD }} num={num} prefs={prefs} parkId={parkId} onLLStatus={onLLStatus} rides={allRides} />
         </div>
       );
     };
@@ -636,7 +636,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
           if (!t1Rides.length) return null;
           const isSelecting = !t1PreBooked && !t1Skipped;
           const locked = !!t1PreBooked;
-          const sorted  = sortTierGroup(t1Rides, parkId, prefs);
+          const sorted  = sortTierGroup(t1Rides, parkId, prefs, allRides);
           const display = locked
             ? t1Rides.filter((r) => r.id === t1PreBooked.id)
             : sorted;
@@ -663,7 +663,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
           const t2Rides = allLLScored.filter((r) => r.ll === "mp2" && !laterRoundIds.has(r.id));
           if (!t2Rides.length) return null;
           const locked   = t2Filled;
-          const sorted   = sortTierGroup(t2Rides, parkId, prefs);
+          const sorted   = sortTierGroup(t2Rides, parkId, prefs, allRides);
           const nonDont  = sorted.filter((r) => prefs[r.id]?.llStatus !== LL_STATUS.DONTBOOK);
           const dontBook = sorted.filter((r) => prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK);
           const display  = locked
