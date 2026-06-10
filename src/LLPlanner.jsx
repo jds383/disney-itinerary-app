@@ -506,7 +506,7 @@ function RankItem({ r, num, prefs, parkId, onLLStatus, rides = [] }) {
 
 // ── Rankings ──────────────────────────────────────────────────────────────────
 
-function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
+function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides, onSwitchToPrefs }) {
   const park        = PARKS.find((p) => p.id === parkId);
   const rides       = allRides.filter((r) => r.park === parkId);
   const activeRides = rides.filter((r) => !isClosed(r.id, prefs));
@@ -515,26 +515,48 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
   if (scored.length === 0) return null;
 
   const anyLLSelected = rides.some((r) => prefs[r.id]?.llStatus);
-  const [overallOpen, setOverallOpen]     = useState(!anyLLSelected);
-  const [llOpen, setLlOpen]               = useState(anyLLSelected);
-
+  const [llOpen, setLlOpen] = useState(anyLLSelected);
+  const [topOpen, setTopOpen] = useState(true);
 
   const rdConfirmed  = prefs[`rdc_${parkId}`] ?? null;
   const rdNominees   = activeRides.filter((r) => prefs[r.id]?.rdNom);
   const multiPending = rdNominees.length > 1 && !rdConfirmed;
   const tier1Conflict = activeRides.filter((r) => r.ll === "mp1" && r.id !== rdConfirmed && PEOPLE.some((p) => prefs[r.id]?.prefs?.[p.id] === "must"));
 
-  const renderOverall = () => {
-    const nonDecided = activeRides.filter((r) => prefs[r.id]?.llStatus !== LL_STATUS.DONTBOOK && prefs[r.id]?.llStatus !== LL_STATUS.LATER && r.id !== rdConfirmed);
-    const topT1  = nonDecided.filter((r) => r.ll === "mp1").map((r) => ({ ...r, score: calcScore(r.id, prefs) })).sort((a, b) => b.score - a.score)[0];
-    const topT2  = nonDecided.filter((r) => r.ll === "mp2").map((r) => ({ ...r, score: calcScore(r.id, prefs) })).sort((a, b) => b.score - a.score).slice(0, 2);
-    const illR   = nonDecided.filter((r) => r.ll === "ill");
-    const llIds  = new Set([...(topT1 ? [topT1.id] : []), ...topT2.map((r) => r.id), ...illR.map((r) => r.id)]);
+  // ── Completeness checks ───────────────────────────────────────────────────
+  const prefsComplete = activeRides.every((r) =>
+    PEOPLE.every((p) => prefs[r.id]?.prefs?.[p.id])
+  );
 
-    return scored.slice(0, 10).map((r, i) => {
+  const { t1: t1Count, t2: t2Count } = preBookCounts(parkId, prefs, null, allRides);
+  const maxT2       = t1Count === 0 ? 3 : 2;
+  const t2Filled    = t2Count >= maxT2;
+  const t1PreBooked = activeRides.find((r) => r.ll === "mp1" && (prefs[r.id]?.llStatus === LL_STATUS.FIRST || prefs[r.id]?.llStatus === LL_STATUS.PREBOOK));
+  const t1Skipped   = activeRides.filter((r) => r.ll === "mp1").every((r) => prefs[r.id]?.llStatus === LL_STATUS.LATER || prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK || prefs[r.id]?.llStatus === LL_STATUS.SECOND);
+  const llComplete  = (t2Filled || !activeRides.some((r) => r.ll === "mp2")) && !!rdConfirmed;
+
+  // ── Build later round set ─────────────────────────────────────────────────
+  const laterRoundIds = new Set();
+  if (t1PreBooked) {
+    activeRides.filter((r) => r.ll === "mp1" && r.id !== t1PreBooked.id).forEach((r) => laterRoundIds.add(r.id));
+  }
+  if (t2Filled) {
+    activeRides.filter((r) => r.ll === "mp2" && prefs[r.id]?.llStatus !== LL_STATUS.FIRST && prefs[r.id]?.llStatus !== LL_STATUS.PREBOOK).forEach((r) => laterRoundIds.add(r.id));
+  }
+
+  // ── Top Rides ─────────────────────────────────────────────────────────────
+  const renderTopRides = () => {
+    const allLLScored = activeRides.filter(r => r.ll !== "noll").map((r) => ({ ...r, score: calcScore(r.id, prefs) })).sort((a, b) => b.score - a.score);
+    const mpRides  = allLLScored.filter((r) => r.ll === "mp1" || r.ll === "mp2").slice(0, 6);
+    const cutoff   = mpRides.length === 6 ? mpRides[5].score : -Infinity;
+    const illRides = allLLScored.filter((r) => r.ll === "ill" && r.score >= cutoff);
+    const topRides = [...mpRides, ...illRides].sort((a, b) => b.score - a.score);
+
+    if (!topRides.length) return <div style={{ fontSize:12, color:"#AAA", fontFamily:"'DM Sans',sans-serif" }}>Rate some rides to see Top Rides.</div>;
+
+    return topRides.map((r, i) => {
       const isConfRD = rdConfirmed === r.id;
       const isRDNom  = prefs[r.id]?.rdNom && !isConfRD;
-      const showLL   = llIds.has(r.id) && !isConfRD;
       const pill = r.ll === "ill" ? <span className="r-pill b-sp">SP</span> : r.ll === "mp1" ? <span className="r-pill b-mp1">T1</span> : r.ll === "mp2" ? <span className="r-pill b-mp2">T2</span> : null;
       return (
         <div className="r-item" key={r.id}>
@@ -544,38 +566,21 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
             <span className="r-name">{r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a> : <span className="r-link">{r.displayName}</span>}</span>
             {isConfRD && <span className="r-pill rd-tag">RD ✓</span>}
             {isRDNom  && <span className="r-pill rd-tag">RD?</span>}
-            {showLL && pill}
-            {showLL && <span className="r-pill ll-tag">Book LL</span>}
+            {pill}
           </div>
         </div>
       );
     });
   };
 
+  // ── LL Plan ───────────────────────────────────────────────────────────────
   const renderLL = () => {
     const allLLRides  = activeRides.filter((r) => r.ll !== "noll");
     const allLLScored = allLLRides.map((r) => ({ ...r, score: calcScore(r.id, prefs) })).sort((a, b) => b.score - a.score);
+    const t1Rides = allLLScored.filter((r) => r.ll === "mp1");
+    const t2Rides = allLLScored.filter((r) => r.ll === "mp2");
+    const laterRound = allLLScored.filter((r) => laterRoundIds.has(r.id));
 
-    const t1PreBooked = activeRides.find((r) => r.ll === "mp1" && (prefs[r.id]?.llStatus === LL_STATUS.FIRST || prefs[r.id]?.llStatus === LL_STATUS.PREBOOK));
-    const t1Skipped   = activeRides.filter((r) => r.ll === "mp1").every((r) => prefs[r.id]?.llStatus === LL_STATUS.LATER || prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK || prefs[r.id]?.llStatus === LL_STATUS.SECOND);
-    const { t1: t1Count, t2: t2Count } = preBookCounts(parkId, prefs, null, allRides);
-    const maxT2 = t1Count === 0 ? 3 : 2;
-    const t2Filled = t2Count >= maxT2;
-
-    // Build set of ride IDs that get pushed to Later Round Options
-    const laterRoundIds = new Set();
-    if (t1PreBooked) {
-      activeRides.filter((r) => r.ll === "mp1" && r.id !== t1PreBooked.id).forEach((r) => laterRoundIds.add(r.id));
-    }
-    if (t2Filled) {
-      activeRides.filter((r) => r.ll === "mp2" && prefs[r.id]?.llStatus !== LL_STATUS.FIRST && prefs[r.id]?.llStatus !== LL_STATUS.PREBOOK).forEach((r) => laterRoundIds.add(r.id));
-    }
-
-    const rdHeader = () => {
-      if (rdConfirmed) { const ride = activeRides.find((r) => r.id === rdConfirmed); return `Rope Drop — ${ride?.displayName ?? ""} ✓`; }
-      if (rdNominees.length > 0) return "Rope Drop — Select One ↓";
-      return "Rope Drop — None Nominated";
-    };
     const t1Header = () => {
       const prefix = park?.tiered ? "Tier 1 — " : "";
       if (t1PreBooked) return `${prefix}${t1PreBooked.displayName} ✓`;
@@ -587,174 +592,111 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
       if (t2Filled) return `${prefix}${t2Count} of ${maxT2} slots filled ✓`;
       return `${prefix}${t2Count} of ${maxT2} slots filled`;
     };
-
-    const renderRideItem = (r, num) => {
-      const isRD = r.id === rdConfirmed;
-      return (
-        <div key={r.id} style={{ position: "relative" }}>
-          <RankItem r={{ ...r, isRD }} num={num} prefs={prefs} parkId={parkId} onLLStatus={onLLStatus} rides={allRides} />
-        </div>
-      );
+    const rdHeader = () => {
+      if (rdConfirmed) { const ride = activeRides.find((r) => r.id === rdConfirmed); return `Rope Drop — ${ride?.displayName ?? ""} ✓`; }
+      if (rdNominees.length > 0) return "Rope Drop — Select One ↓";
+      return "Rope Drop — None Nominated";
     };
 
-    const laterRound = allLLScored.filter((r) => laterRoundIds.has(r.id));
+    const renderRideItem = (r, num) => (
+      <div key={r.id} style={{ position: "relative" }}>
+        <RankItem r={{ ...r, isRD: r.id === rdConfirmed }} num={num} prefs={prefs} parkId={parkId} onLLStatus={onLLStatus} rides={allRides} />
+      </div>
+    );
 
     return (
       <>
-        {/* Rope Drop */}
         {rdNominees.length > 0 && (
           <div>
             <div className={`tier-lbl-row ${rdConfirmed ? "complete" : "incomplete"}`}>
               <span className="tier-lbl">{rdHeader()}</span>
             </div>
-            <>
-              {multiPending && <div className="rd-pend">Select a Rope Drop Ride</div>}
-              {(rdConfirmed ? rdNominees.filter((r) => r.id === rdConfirmed) : rdNominees).map((r) => {
-                const isConf = rdConfirmed === r.id;
-                const s = calcScore(r.id, prefs);
-                return (
-                  <div className="r-item" key={r.id}>
-                    <div className="r-item-top">
-                      <span className="r-num">·</span>
-                      <span className={`score-badge ${scoreColorClass(s)}`}>{s > 0 ? "+" : ""}{s}</span>
-                      <span className="r-name">{r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a> : <span className="r-link">{r.displayName}</span>}</span>
-                      <div className={`rd-chk${isConf ? " on" : ""}`} onClick={() => onRdConfirm(parkId, r.id)}>{isConf ? "✓" : ""}</div>
-                    </div>
+            {multiPending && <div className="rd-pend">Select a Rope Drop Ride</div>}
+            {(rdConfirmed ? rdNominees.filter((r) => r.id === rdConfirmed) : rdNominees).map((r) => {
+              const isConf = rdConfirmed === r.id;
+              const s = calcScore(r.id, prefs);
+              return (
+                <div className="r-item" key={r.id}>
+                  <div className="r-item-top">
+                    <span className="r-num">·</span>
+                    <span className={`score-badge ${scoreColorClass(s)}`}>{s > 0 ? "+" : ""}{s}</span>
+                    <span className="r-name">{r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a> : <span className="r-link">{r.displayName}</span>}</span>
+                    {tier1Conflict.some((c) => c.id === r.id) && <span className="r-pill ee-tag">T1!</span>}
+                    <div className={`rd-chk${isConf ? " on" : ""}`} onClick={() => onRdConfirm(parkId, r.id)}>{isConf ? "✓" : ""}</div>
                   </div>
-                );
-              })}
-            </>
+                </div>
+              );
+            })}
           </div>
         )}
-
-        {/* Warnings */}
-        {rdConfirmed && !(allRides.find(r => r.id === rdConfirmed)?.earlyEntry) && (
-          <div className="conflict">⚠ Rope Drop ride is not available during early entry — you'll be competing with the full crowd at park open.</div>
+        {t1Rides.length > 0 && (
+          <div>
+            {(() => { const t1AllMarked = t1Rides.every((r) => prefs[r.id]?.llStatus); const t1Complete = !!t1PreBooked || t1AllMarked; return <div className={`tier-lbl-row ${t1Complete ? "complete" : "incomplete"}`}><span className="tier-lbl">{t1Header()}</span></div>; })()}
+            {park?.tiered && !t1PreBooked && t1Rides.length > 1 && <div className="rd-pend">Select one Tier 1 Ride</div>}
+            {t1Rides.map((r) => renderRideItem(r, null))}
+          </div>
         )}
-
-        {/* Tier 1 */}
-        {(() => {
-          const t1Rides = allLLScored.filter((r) => r.ll === "mp1" && !laterRoundIds.has(r.id));
-          if (!t1Rides.length) return null;
-          const isSelecting = !t1PreBooked && !t1Skipped;
-          const locked = !!t1PreBooked;
-          const sorted  = sortTierGroup(t1Rides, parkId, prefs, allRides);
-          const display = locked
-            ? t1Rides.filter((r) => r.id === t1PreBooked.id)
-            : sorted;
-          let num = 0;
-          return (
-            <div>
-              {(() => {
-                const t1AllMarked = t1Rides.every((r) => prefs[r.id]?.llStatus);
-                const t1Complete  = !!t1PreBooked || t1AllMarked;
-                return (
-                  <div className={`tier-lbl-row ${t1Complete ? "complete" : "incomplete"}`}>
-                    <span className="tier-lbl">{t1Header()}</span>
-                  </div>
-                );
-              })()}
-              {!t1PreBooked && t1Rides.length > 1 && <div className="rd-pend">Select one Tier 1 Ride</div>}
-              {display.map((r) => { num++; return renderRideItem(r, num); })}
-            </div>
-          );
-        })()}
-
-        {/* Tier 2 */}
-        {(() => {
-          const t2Rides = allLLScored.filter((r) => r.ll === "mp2" && !laterRoundIds.has(r.id));
-          if (!t2Rides.length) return null;
-          const locked   = t2Filled;
-          const sorted   = sortTierGroup(t2Rides, parkId, prefs, allRides);
-          const nonDont  = sorted.filter((r) => prefs[r.id]?.llStatus !== LL_STATUS.DONTBOOK);
-          const dontBook = sorted.filter((r) => prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK);
-          const display  = locked
-            ? sorted.filter((r) => prefs[r.id]?.llStatus === LL_STATUS.FIRST || prefs[r.id]?.llStatus === LL_STATUS.PREBOOK)
-            : [...nonDont, ...dontBook];
-          if (!display.length) return null;
-          let num = 0;
-          return (
-            <div>
-              {(() => {
-                const t2AllMarked = t2Rides.every((r) => prefs[r.id]?.llStatus);
-                const t2Complete  = t2Filled || t2AllMarked;
-                return (
-                  <div className={`tier-lbl-row ${t2Complete ? "complete" : "incomplete"}`}>
-                    <span className="tier-lbl">{t2Header()}</span>
-                  </div>
-                );
-              })()}
-              {display.map((r) => {
-                const isDemoted = prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK;
-                if (!isDemoted) num++;
-                return renderRideItem(r, isDemoted ? null : num);
-              })}
-            </div>
-          );
-        })()}
-
-        {/* Single Pass */}
+        {t2Rides.length > 0 && (
+          <div>
+            {(() => { const t2AllMarked = t2Rides.every((r) => prefs[r.id]?.llStatus); const t2Complete = t2Filled || t2AllMarked; return <div className={`tier-lbl-row ${t2Complete ? "complete" : "incomplete"}`}><span className="tier-lbl">{t2Header()}</span></div>; })()}
+            {(() => {
+              const sorted = sortTierGroup(t2Rides, parkId, prefs, allRides);
+              let num = 0;
+              return sorted.map((r) => { const isDemoted = laterRoundIds.has(r.id); if (!isDemoted) num++; return renderRideItem(r, isDemoted ? null : num); });
+            })()}
+          </div>
+        )}
         {(() => {
           const illRides = allLLScored.filter((r) => r.ll === "ill");
           if (!illRides.length) return null;
           let num = 0;
-          return (
-            <div>
-              {(() => {
-                const illAllMarked = illRides.every((r) => prefs[r.id]?.llStatus);
-                return (
-                  <div className={`tier-lbl-row ${illAllMarked ? "complete" : "neutral"}`}>
-                    <span className="tier-lbl">Lightning Lane Single Pass</span>
-                  </div>
-                );
-              })()}
-              {illRides.map((r) => { num++; return renderRideItem(r, num); })}
-            </div>
-          );
+          return <div>{(() => { const illAllMarked = illRides.every((r) => prefs[r.id]?.llStatus); return <div className={`tier-lbl-row ${illAllMarked ? "complete" : "neutral"}`}><span className="tier-lbl">Lightning Lane Single Pass</span></div>; })()}{illRides.map((r) => { num++; return renderRideItem(r, num); })}</div>;
         })()}
-
-        {/* Later Round Options */}
         {laterRound.length > 0 && (
           <div>
-            <div className="tier-lbl-row neutral">
-              <span className="tier-lbl">Later Round Options</span>
-            </div>
-            {(() => {
-              const sorted = [
-                ...laterRound.filter((r) => prefs[r.id]?.llStatus !== LL_STATUS.DONTBOOK),
-                ...laterRound.filter((r) => prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK),
-              ];
-              let num = 0;
-              return sorted.map((r) => {
-                const isDemoted = prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK;
-                if (!isDemoted) num++;
-                return renderRideItem(r, isDemoted ? null : num);
-              });
-            })()}
+            <div className="tier-lbl-row neutral"><span className="tier-lbl">Later Round Options</span></div>
+            {(() => { const sorted = [...laterRound.filter((r) => prefs[r.id]?.llStatus !== LL_STATUS.DONTBOOK), ...laterRound.filter((r) => prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK)]; let num = 0; return sorted.map((r) => { const isDemoted = prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK; if (!isDemoted) num++; return renderRideItem(r, isDemoted ? null : num); }); })()}
           </div>
         )}
       </>
     );
   };
 
-  return (
-    <>
-      <div className="rank-sec">
-        <div className="rank-hdr" onClick={() => setOverallOpen((o) => !o)}>
-          <span className="rank-title">Overall Top 10</span>
-          <span className={`chev${overallOpen ? " open" : ""}`}>▼</span>
-        </div>
-        {overallOpen && <div className="rank-body">{renderOverall()}</div>}
+  // ── Section components ────────────────────────────────────────────────────
+  const PrefsLink = () => (
+    <div className="rank-sec" onClick={() => onSwitchToPrefs && onSwitchToPrefs(parkId)} style={{ cursor: "pointer" }}>
+      <div className="rank-hdr">
+        <span className="rank-title" style={{ color: prefsComplete ? "#2C5F8A" : "#C0392B" }}>
+          {prefsComplete ? "See Ride Preferences Here →" : "Complete Ride Preferences Here →"}
+        </span>
       </div>
-      <div className="rank-sec">
-        <div className="rank-hdr" onClick={() => setLlOpen((o) => !o)}>
-          <span className="rank-title">Lightning Lane Plan</span>
-          <span className={`chev${llOpen ? " open" : ""}`}>▼</span>
-        </div>
-        {llOpen && <div className="rank-body">{renderLL()}</div>}
-      </div>
-    </>
+    </div>
   );
+
+  const TopRidesSection = () => (
+    <div className="rank-sec">
+      <div className="rank-hdr" onClick={() => setTopOpen((o) => !o)}>
+        <span className="rank-title">Top Rides</span>
+        <span className={`chev${topOpen ? " open" : ""}`}>▼</span>
+      </div>
+      {topOpen && <div className="rank-body">{renderTopRides()}</div>}
+    </div>
+  );
+
+  const LLPlanSection = () => (
+    <div className="rank-sec">
+      <div className="rank-hdr" onClick={() => setLlOpen((o) => !o)}>
+        <span className="rank-title">Lightning Lane Plan</span>
+        <span className={`chev${llOpen ? " open" : ""}`}>▼</span>
+      </div>
+      {llOpen && <div className="rank-body">{renderLL()}</div>}
+    </div>
+  );
+
+  // ── Section ordering ──────────────────────────────────────────────────────
+  if (llComplete && prefsComplete) return <><LLPlanSection /><TopRidesSection /><PrefsLink /></>;
+  if (!prefsComplete)              return <><PrefsLink /><TopRidesSection /><LLPlanSection /></>;
+  return <><TopRidesSection /><LLPlanSection /><PrefsLink /></>;
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────────
@@ -773,7 +715,7 @@ function selloutMinutes(rideId) {
   return h * 60 + min;
 }
 
-export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus, rides: allRides = [] }) {
+export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus, rides: allRides = [], onSwitchToPrefs }) {
   const [collapsed, setCollapsed] = useState({});
   const isBeforeTrip = new Date() < TRIP_START;
   const [summaryMode, setSummaryModeRaw] = useState(() => {
@@ -912,6 +854,7 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
             onRdConfirm={onRdConfirm}
             onLLStatus={onLLStatus}
             rides={allRides}
+            onSwitchToPrefs={onSwitchToPrefs}
           />
         </div>
       )}
@@ -979,7 +922,7 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
 
 // ── ParkRides ─────────────────────────────────────────────────────────────────
 
-export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, syncing, onRdConfirm, onLLStatus, showRankings = true, rides: allRides = [] }) {
+export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, syncing, onRdConfirm, onLLStatus, showRankings = true, rides: allRides = [], onSwitchToPrefs }) {
   const [ratedOpen, setRatedOpen] = useState(false);
 
   const parkRides = allRides.filter((r) => r.park === parkId);
@@ -1009,7 +952,7 @@ export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, s
           ))}
         </div>
       )}
-      {showRankings && <Rankings parkId={parkId} prefs={prefs} onRdConfirm={onRdConfirm} onLLStatus={onLLStatus} rides={allRides} />}
+      {showRankings && <Rankings parkId={parkId} prefs={prefs} onRdConfirm={onRdConfirm} onLLStatus={onLLStatus} rides={allRides} onSwitchToPrefs={onSwitchToPrefs} />}
     </>
   );
 }

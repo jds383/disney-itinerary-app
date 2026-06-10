@@ -822,7 +822,11 @@ export function Itinerary({ view, setView, prefs, rides = [], syncing, loading, 
     } catch (e) {}
   };
 
-  // Wrap handlers
+  // Switch to preferences tab for a specific park
+  const switchToPrefs = (parkId) => {
+    try { localStorage.setItem(`dw-${tripConfig.tripId}-prefPark`, parkId); } catch (e) {}
+    setView("preferences");
+  };
   const w_onPref      = (rideId, pid, pref) => onPref(rideId, pid, pref, rides.find(r => r.id === rideId));
   const w_onNotes     = (rideId, val)        => onNotes(rideId, val, rides.find(r => r.id === rideId), saveMetaToNotion);
   const w_onClosed    = (rideId)             => onClosed(rideId, rides.find(r => r.id === rideId), isClosed, saveMetaToNotion);
@@ -855,7 +859,7 @@ export function Itinerary({ view, setView, prefs, rides = [], syncing, loading, 
 
         {/* ── LL Summary ── */}
         {view === "llsummary" && (
-          <Summary prefs={prefs} syncing={syncing} rides={rides} onPref={w_onPref} onNotes={w_onNotes} onClosed={w_onClosed} onRdNom={w_onRdNom} onRdConfirm={w_onRdConfirm} onLLStatus={w_onLLStatus} />
+          <Summary prefs={prefs} syncing={syncing} rides={rides} onPref={w_onPref} onNotes={w_onNotes} onClosed={w_onClosed} onRdNom={w_onRdNom} onRdConfirm={w_onRdConfirm} onLLStatus={w_onLLStatus} onSwitchToPrefs={switchToPrefs} />
         )}
 
         {/* ── Itinerary ── */}
