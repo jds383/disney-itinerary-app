@@ -859,7 +859,16 @@ export function Itinerary({ view, setView, prefs, rides = [], syncing, loading, 
 
         {/* ── LL Summary ── */}
         {view === "llsummary" && (
-          <Summary prefs={prefs} syncing={syncing} rides={rides} onPref={w_onPref} onNotes={w_onNotes} onClosed={w_onClosed} onRdNom={w_onRdNom} onRdConfirm={w_onRdConfirm} onLLStatus={w_onLLStatus} onSwitchToPrefs={switchToPrefs} />
+          <Summary
+            prefs={prefs} syncing={syncing} rides={rides}
+            onPref={w_onPref} onNotes={w_onNotes} onClosed={w_onClosed}
+            onRdNom={w_onRdNom} onRdConfirm={w_onRdConfirm} onLLStatus={w_onLLStatus}
+            onSwitchToPrefs={switchToPrefs}
+            confirmedParks={(() => {
+              const ids = [...new Set(calendarDays.map(d => d.parkId).filter(Boolean))];
+              return ids.length > 0 ? ids : null;
+            })()}
+          />
         )}
 
         {/* ── Itinerary ── */}

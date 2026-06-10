@@ -715,7 +715,7 @@ function selloutMinutes(rideId) {
   return h * 60 + min;
 }
 
-export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus, rides: allRides = [], onSwitchToPrefs }) {
+export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus, rides: allRides = [], onSwitchToPrefs, confirmedParks }) {
   const [collapsed, setCollapsed] = useState({});
   const isBeforeTrip = new Date() < TRIP_START;
   const [summaryMode, setSummaryModeRaw] = useState(() => {
@@ -858,7 +858,7 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
           />
         </div>
       )}
-      {(summaryMode === "prebook" || summaryMode === "all") && PARKS.map((park) => {
+      {(summaryMode === "prebook" || summaryMode === "all") && (confirmedParks ? PARKS.filter(p => confirmedParks.includes(p.id)) : PARKS).map((park) => {
         const rdConf  = prefs[`rdc_${park.id}`] ?? null;
         const rdRide  = rdConf ? allRides.find((r) => r.id === rdConf) : null;
         const { labeled, rankedSecond } = buildRankedLLs(park.id);
@@ -923,6 +923,7 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
 // ── ParkRides ─────────────────────────────────────────────────────────────────
 
 export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, syncing, onRdConfirm, onLLStatus, showRankings = true, rides: allRides = [], onSwitchToPrefs }) {
+  const allRated = needsRating.length === 0;
   const [ratedOpen, setRatedOpen] = useState(false);
 
   const parkRides = allRides.filter((r) => r.park === parkId);
@@ -943,11 +944,11 @@ export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, s
       ))}
       {!showRankings && ratedAndClosed.length > 0 && (
         <div className="rank-sec" style={{marginTop: '0', marginBottom: '10px'}}>
-          <div className="rank-hdr" onClick={() => setRatedOpen((o) => !o)}>
+          <div className="rank-hdr" onClick={() => !allRated && setRatedOpen((o) => !o)} style={{ cursor: allRated ? "default" : "pointer" }}>
             <span className="rank-title">Rated (or Closed) Rides ({ratedAndClosed.length})</span>
-            <span className={`chev${ratedOpen ? " open" : ""}`}>▼</span>
+            {!allRated && <span className={`chev${ratedOpen ? " open" : ""}`}>▼</span>}
           </div>
-          {ratedOpen && ratedAndClosed.map((ride) => (
+          {(allRated || ratedOpen) && ratedAndClosed.map((ride) => (
             <RideCard key={ride.id} ride={ride} {...cardProps} />
           ))}
         </div>
