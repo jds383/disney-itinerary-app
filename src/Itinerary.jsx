@@ -552,7 +552,7 @@ function CountdownTitle() {
 }
 
 // ── Day header (collapsed state) ──────────────────────────────────────────────
-function CollapsedDayHeader({ day, isExpanded, onToggle }) {
+function CollapsedDayHeader({ day, onFocus, onAdd }) {
   const color = getDayColor(day);
   const today = new Date().toISOString().split("T")[0];
   const showWeather = day.date >= today;
@@ -570,32 +570,39 @@ function CollapsedDayHeader({ day, isExpanded, onToggle }) {
 
   return (
     <div
-      onClick={onToggle}
+      onClick={onFocus}
       style={{
-        display: "flex", alignItems: "center", gap: 10,
-        padding: "12px 16px", cursor: "pointer",
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 12px 10px 16px", cursor: "pointer",
         borderLeft: `4px solid ${color}`,
-        background: isExpanded ? "#FFF" : "#FAFAF8",
+        background: "#FAFAF8",
         borderBottom: "1px solid #EDE8E1",
         transition: "background 0.15s",
       }}
     >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#1A1A1A", fontFamily: "'DM Sans',sans-serif", marginBottom: 2 }}>{dateLabel}</div>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#1A1A1A", fontFamily: "'DM Sans',sans-serif", whiteSpace: "nowrap" }}>{dateLabel}</div>
         {locLabel && (
-          <div style={{ fontSize: 11, color: "#888", fontFamily: "'DM Sans',sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{locLabel}</div>
+          <div style={{ fontSize: 11, color: "#AAA", fontFamily: "'DM Sans',sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{locLabel}</div>
         )}
       </div>
       {showWeather && day.latStart && (
         <WeatherInline date={day.date} lat={day.latStart} lon={day.lonStart} />
       )}
-      <span style={{ fontSize: 12, color: "#CCC", flexShrink: 0, transition: "transform 0.2s", display: "inline-block", transform: isExpanded ? "rotate(180deg)" : "none", marginLeft: 4 }}>▾</span>
+      <button
+        onClick={e => { e.stopPropagation(); onAdd(); }}
+        style={{
+          fontSize: 16, lineHeight: 1, color: "#CCC", background: "none", border: "none",
+          cursor: "pointer", flexShrink: 0, padding: "0 2px", fontFamily: "'DM Sans',sans-serif",
+          marginLeft: 4,
+        }}
+      >+</button>
     </div>
   );
 }
 
 // ── Expanded day content ──────────────────────────────────────────────────────
-function DayContent({ day, bookedLLs, updateVisibility }) {
+function DayContent({ day, bookedLLs, updateVisibility, onCollapse }) {
   const color = getDayColor(day);
 
   // Weather carousel
@@ -663,9 +670,16 @@ function DayContent({ day, bookedLLs, updateVisibility }) {
             )}
           </div>
           <div
-            style={{ flexShrink:0, textAlign:"right", cursor: weatherLocs.length>1 ? "pointer" : "default" }}
-            onClick={() => weatherLocs.length>1 && setLocIdx(i => (i+1) % weatherLocs.length)}
+            style={{ flexShrink:0, textAlign:"right", cursor: weatherLocs.length>1 ? "pointer" : "default", display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}
           >
+            <button
+              onClick={onCollapse}
+              style={{ fontSize:14, color:"rgba(255,255,255,0.5)", background:"none", border:"none", cursor:"pointer", padding:0, lineHeight:1, alignSelf:"flex-end" }}
+            >▾</button>
+            <div
+              onClick={() => weatherLocs.length>1 && setLocIdx(i => (i+1) % weatherLocs.length)}
+              style={{ cursor: weatherLocs.length>1 ? "pointer" : "default" }}
+            >
             {weatherLocs.length > 1 && (
               <div style={{ display:"flex", justifyContent:"flex-end", gap:4, marginBottom:4 }}>
                 {weatherLocs.map((_,i) => (
@@ -677,6 +691,7 @@ function DayContent({ day, bookedLLs, updateVisibility }) {
             {weatherLocs.length>1 && activeLoc.label && (
               <div style={{ fontSize:8, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>{activeLoc.label}</div>
             )}
+            </div>
           </div>
         </div>
         <WeatherAlert weather={weather} />
@@ -762,7 +777,16 @@ export function Itinerary({ view, setView, prefs, syncing, loading, syncError, o
     fetchBookedLLs().then(setBookedLLs).catch(() => {});
   }, []);
 
-  const toggleDay = (date) => {
+  const focusDay = (date) => {
+    setExpanded(prev => {
+      const isOnlyOne = prev.size === 1 && prev.has(date);
+      const next = isOnlyOne ? new Set() : new Set([date]);
+      saveExpanded(next);
+      return next;
+    });
+  };
+
+  const addDay = (date) => {
     setExpanded(prev => {
       const next = new Set(prev);
       if (next.has(date)) next.delete(date);
@@ -835,16 +859,19 @@ export function Itinerary({ view, setView, prefs, syncing, loading, syncError, o
                   const isExp = expanded.has(day.date);
                   return (
                     <div key={day.date}>
-                      <CollapsedDayHeader
-                        day={day}
-                        isExpanded={isExp}
-                        onToggle={() => toggleDay(day.date)}
-                      />
+                      {!isExp && (
+                        <CollapsedDayHeader
+                          day={day}
+                          onFocus={() => focusDay(day.date)}
+                          onAdd={() => addDay(day.date)}
+                        />
+                      )}
                       {isExp && (
                         <DayContent
                           day={day}
                           bookedLLs={bookedLLs}
                           updateVisibility={updateVisibility}
+                          onCollapse={() => addDay(day.date)}
                         />
                       )}
                     </div>
