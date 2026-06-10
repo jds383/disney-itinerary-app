@@ -662,8 +662,8 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides, onS
     );
   };
 
-  // ── Section components ────────────────────────────────────────────────────
-  const PrefsLink = () => (
+  // ── Section JSX ──────────────────────────────────────────────────────────
+  const prefsLinkJSX = (
     <div className="rank-sec" onClick={() => onSwitchToPrefs && onSwitchToPrefs(parkId)} style={{ cursor: "pointer" }}>
       <div className="rank-hdr">
         <span className="rank-title" style={{ color: prefsComplete ? "#2C5F8A" : "#C0392B" }}>
@@ -673,7 +673,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides, onS
     </div>
   );
 
-  const TopRidesSection = () => (
+  const topRidesJSX = (
     <div className="rank-sec">
       <div className="rank-hdr" onClick={() => setTopOpen((o) => !o)}>
         <span className="rank-title">Top Rides</span>
@@ -683,7 +683,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides, onS
     </div>
   );
 
-  const LLPlanSection = () => (
+  const llPlanJSX = (
     <div className="rank-sec">
       <div className="rank-hdr" onClick={() => setLlOpen((o) => !o)}>
         <span className="rank-title">Lightning Lane Plan</span>
@@ -694,9 +694,9 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides, onS
   );
 
   // ── Section ordering ──────────────────────────────────────────────────────
-  if (llComplete && prefsComplete) return <><LLPlanSection /><TopRidesSection /><PrefsLink /></>;
-  if (!prefsComplete)              return <><PrefsLink /><TopRidesSection /><LLPlanSection /></>;
-  return <><TopRidesSection /><LLPlanSection /><PrefsLink /></>;
+  if (llComplete && prefsComplete) return <>{llPlanJSX}{topRidesJSX}{prefsLinkJSX}</>;
+  if (!prefsComplete)              return <>{prefsLinkJSX}{topRidesJSX}{llPlanJSX}</>;
+  return <>{topRidesJSX}{llPlanJSX}{prefsLinkJSX}</>;
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────────
