@@ -400,7 +400,7 @@ export default function App() {
       </div>
 
       {/* ── App Footer ── */}
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "16px 20px 32px", textAlign: "center" }}>
+      <div style={{ maxWidth: 480, margin: "auto auto 0", padding: "16px 20px 32px", textAlign: "center", width: "100%" }}>
         <div style={{ fontSize: 10, color: "#CCC", fontFamily: "'DM Sans',sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
           {tripConfig.name}
         </div>
