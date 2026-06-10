@@ -63,7 +63,7 @@ async function fetchRides() {
       const ll       = LL_MAP[llLabel] ?? "noll";
       const illPrice = props["ILL Price"]?.select?.name ?? null;
       const type     = props["Type"]?.select?.name ?? "Ride";
-      const url      = props["userDefined:URL"]?.url ?? "";
+      const url      = props["userDefined:URL"]?.url ?? props["URL"]?.url ?? props["url"]?.url ?? null;
       const visa     = props["Visa Only"]?.checkbox ?? false;
       const hours    = props["Hours"]?.rich_text?.[0]?.text?.content ?? null;
       const location = props["Location"]?.rich_text?.[0]?.text?.content ?? null;
