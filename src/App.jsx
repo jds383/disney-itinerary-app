@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { tripConfig } from "./trip.config";
 import { Itinerary } from "./Itinerary";
 
 const WORKER_URL = "https://disney-ll-proxy.45-reactor-puritan.workers.dev";
@@ -10,19 +11,13 @@ export const LL_STATUS = {
   LATER:    "Later",
   DONTBOOK: "Don't Book",
 };
-
-export const PEOPLE = [
-  { id: "J", family: 1 }, { id: "A", family: 1 },
-  { id: "w", family: 1 }, { id: "r", family: 1 },
-  { id: "T", family: 2 }, { id: "B", family: 2 },
-  { id: "t", family: 2 }, { id: "q", family: 2 }, { id: "b", family: 2 },
-];
+export const PEOPLE = tripConfig.people;
 
 const PREF_NOTION = { must: "Must Do", like: "Like To", neutral: "Neutral", skip: "Skip It" };
 const NOTION_PREF = { "Must Do": "must", "Like To": "like", "Neutral": "neutral", "Skip It": "skip" };
 
 // ── Storage ───────────────────────────────────────────────────────────────────
-const LS_KEY = "dw2026-ll-v8";
+const LS_KEY = `dw-${tripConfig.tripId}-ll-v1`;
 function loadStorage() {
   try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : {}; } catch (_) { return {}; }
 }
@@ -32,7 +27,7 @@ function saveStorage(data) {
 
 // ── Notion fetch ──────────────────────────────────────────────────────────────
 async function fetchAllVotes() {
-  const parks = ["mk", "ep", "hs"];
+  const parks = tripConfig.parks;
   const [votesResults, metaData] = await Promise.all([
     Promise.all(parks.map((park) =>
       fetch(`${WORKER_URL}/votes?park=${park}`).then((r) => r.json())
