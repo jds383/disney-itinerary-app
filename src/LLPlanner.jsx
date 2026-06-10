@@ -577,13 +577,15 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
       return "Rope Drop — None Nominated";
     };
     const t1Header = () => {
-      if (t1PreBooked) return `Tier 1 — ${t1PreBooked.displayName} ✓`;
-      if (t1Skipped)   return `Tier 1 — Skipping · ${maxT2} T2 slots available`;
-      return "Tier 1 — Select up to 1 ↓";
+      const prefix = park?.tiered ? "Tier 1 — " : "";
+      if (t1PreBooked) return `${prefix}${t1PreBooked.displayName} ✓`;
+      if (t1Skipped)   return `${prefix}Skipping · ${maxT2} T2 slots available`;
+      return `${prefix}Select up to 1 ↓`;
     };
     const t2Header = () => {
-      if (t2Filled) return `Tier 2 — ${t2Count} of ${maxT2} slots filled ✓`;
-      return `Tier 2 — ${t2Count} of ${maxT2} slots filled`;
+      const prefix = park?.tiered ? "Tier 2 — " : "";
+      if (t2Filled) return `${prefix}${t2Count} of ${maxT2} slots filled ✓`;
+      return `${prefix}${t2Count} of ${maxT2} slots filled`;
     };
 
     const renderRideItem = (r, num) => {
@@ -646,13 +648,13 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
               {(() => {
                 const t1AllMarked = t1Rides.every((r) => prefs[r.id]?.llStatus);
                 const t1Complete  = !!t1PreBooked || t1AllMarked;
-                return park?.tiered ? (
+                return (
                   <div className={`tier-lbl-row ${t1Complete ? "complete" : "incomplete"}`}>
                     <span className="tier-lbl">{t1Header()}</span>
                   </div>
-                ) : null;
+                );
               })()}
-              {park?.tiered && !t1PreBooked && t1Rides.length > 1 && <div className="rd-pend">Select one Tier 1 Ride</div>}
+              {!t1PreBooked && t1Rides.length > 1 && <div className="rd-pend">Select one Tier 1 Ride</div>}
               {display.map((r) => { num++; return renderRideItem(r, num); })}
             </div>
           );
@@ -676,11 +678,11 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
               {(() => {
                 const t2AllMarked = t2Rides.every((r) => prefs[r.id]?.llStatus);
                 const t2Complete  = t2Filled || t2AllMarked;
-                return park?.tiered ? (
+                return (
                   <div className={`tier-lbl-row ${t2Complete ? "complete" : "incomplete"}`}>
                     <span className="tier-lbl">{t2Header()}</span>
                   </div>
-                ) : null;
+                );
               })()}
               {display.map((r) => {
                 const isDemoted = prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK;
