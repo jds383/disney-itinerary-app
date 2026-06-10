@@ -252,7 +252,6 @@ const RAW_RIDES = [
   { id:"ak7",  park:"ak", name:"Finding Nemo: The Big Blue… and Beyond!",                 type:"Show",           ll:"mp2", url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/finding-nemo-the-musical/" },
   { id:"ak8",  park:"ak", name:"Feathered Friends in Flight!",                            type:"Show",           ll:"mp2", url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/feathered-friends-in-flight/" },
   { id:"ak9",  park:"ak", name:"Zootopia: Better Zoogether!",                             type:"Show",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/zootopia-better-zoogether/" },
-  { id:"ak10", park:"ak", name:"Discovery River Boats",                                   type:"Ride",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/discovery-river-boats/" },
   { id:"ak11", park:"ak", name:"Gorilla Falls Exploration Trail",                         type:"Tour",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/gorilla-falls-exploration-trail/" },
   { id:"ak12", park:"ak", name:"Maharajah Jungle Trek",                                   type:"Tour",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/maharajah-jungle-trek/" },
   { id:"ak13", park:"ak", name:"Wildlife Express Train",                                  type:"Ride",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/wildlife-express-train/" },
