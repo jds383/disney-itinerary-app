@@ -29,10 +29,10 @@ const LL_STATUS_COLORS = {
 };
 
 const PARK_META = {
-  mk: { name: "Magic Kingdom",     color: "#2C5F8A" },
-  ep: { name: "EPCOT",             color: "#4A2C6B" },
-  hs: { name: "Hollywood Studios", color: "#8A3A2C" },
-  ak: { name: "Animal Kingdom",    color: "#5C7A2E" },
+  mk: { name: "Magic Kingdom",     color: "#2C5F8A", tiered: true  },
+  ep: { name: "EPCOT",             color: "#4A2C6B", tiered: true  },
+  hs: { name: "Hollywood Studios", color: "#8A3A2C", tiered: true  },
+  ak: { name: "Animal Kingdom",    color: "#5C7A2E", tiered: false },
 };
 
 export const PARKS = tripConfig.parks.map(id => ({ id, ...PARK_META[id] }));
@@ -756,13 +756,13 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus }) {
               {(() => {
                 const t1AllMarked = t1Rides.every((r) => prefs[r.id]?.llStatus);
                 const t1Complete  = !!t1PreBooked || t1AllMarked;
-                return (
+                return park?.tiered ? (
                   <div className={`tier-lbl-row ${t1Complete ? "complete" : "incomplete"}`}>
                     <span className="tier-lbl">{t1Header()}</span>
                   </div>
-                );
+                ) : null;
               })()}
-              {!t1PreBooked && t1Rides.length > 1 && <div className="rd-pend">Select one Tier 1 Ride</div>}
+              {park?.tiered && !t1PreBooked && t1Rides.length > 1 && <div className="rd-pend">Select one Tier 1 Ride</div>}
               {display.map((r) => { num++; return renderRideItem(r, num); })}
             </div>
           );
@@ -786,11 +786,11 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus }) {
               {(() => {
                 const t2AllMarked = t2Rides.every((r) => prefs[r.id]?.llStatus);
                 const t2Complete  = t2Filled || t2AllMarked;
-                return (
+                return park?.tiered ? (
                   <div className={`tier-lbl-row ${t2Complete ? "complete" : "incomplete"}`}>
                     <span className="tier-lbl">{t2Header()}</span>
                   </div>
-                );
+                ) : null;
               })()}
               {display.map((r) => {
                 const isDemoted = prefs[r.id]?.llStatus === LL_STATUS.DONTBOOK;
