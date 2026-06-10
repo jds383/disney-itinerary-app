@@ -242,6 +242,25 @@ const RAW_RIDES = [
   { id:"ep20", park:"ep", name:"Disney Visa Character Experience",                    type:"Character Meet", ll:"noll", visa:true, hours:"1:00pm–6:30pm", location:"Disney Visa Photo Spot, World Celebration, next to Journey Into Imagination", url:"https://disneyworld.disney.go.com/entertainment/epcot/visa-card-character-experience/" },
   { id:"hs20", park:"hs", name:"Star Wars Visa Photo Opportunity",                    type:"Character Meet", ll:"noll", visa:true, hours:"9:00am–5:00pm", location:"Between Galaxy's Edge and Toy Story Land", url:"https://disneyrewards.com/parks-and-vacations/walt-disney-world-perks/#starwarscharacterexperience" },
   { id:"hs21", park:"hs", name:"Stitch Visa Character Experience",                    type:"Character Meet", ll:"noll", visa:true, hours:"9:00am–12:00pm", location:"Celebrity Spotlight, Echo Lake", url:"https://disneyrewards.com/parks-and-vacations/walt-disney-world-perks/#starwarscharacterexperience" },
+  // ── Animal Kingdom ───────────────────────────────────────────────────────────
+  { id:"ak1",  park:"ak", name:"Avatar Flight of Passage",                                type:"Ride",           ll:"ill", illPrice:"$12–$16", url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/avatar-flight-of-passage/" },
+  { id:"ak2",  park:"ak", name:"Na'vi River Journey",                                     type:"Ride",           ll:"mp2", url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/navi-river-journey/" },
+  { id:"ak3",  park:"ak", name:"Kilimanjaro Safaris",                                     type:"Ride",           ll:"mp2", url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/kilimanjaro-safaris/" },
+  { id:"ak4",  park:"ak", name:"Expedition Everest – Legend of the Forbidden Mountain",   type:"Ride",           ll:"mp2", url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/expedition-everest/" },
+  { id:"ak5",  park:"ak", name:"Kali River Rapids",                                       type:"Ride",           ll:"mp2", url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/kali-river-rapids/" },
+  { id:"ak6",  park:"ak", name:"Festival of the Lion King",                               type:"Show",           ll:"mp2", url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/festival-of-the-lion-king/" },
+  { id:"ak7",  park:"ak", name:"Finding Nemo: The Big Blue… and Beyond!",                 type:"Show",           ll:"mp2", url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/finding-nemo-the-musical/" },
+  { id:"ak8",  park:"ak", name:"Feathered Friends in Flight!",                            type:"Show",           ll:"mp2", url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/feathered-friends-in-flight/" },
+  { id:"ak9",  park:"ak", name:"Zootopia: Better Zoogether!",                             type:"Show",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/zootopia-better-zoogether/" },
+  { id:"ak10", park:"ak", name:"Discovery River Boats",                                   type:"Ride",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/discovery-river-boats/" },
+  { id:"ak11", park:"ak", name:"Gorilla Falls Exploration Trail",                         type:"Tour",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/gorilla-falls-exploration-trail/" },
+  { id:"ak12", park:"ak", name:"Maharajah Jungle Trek",                                   type:"Tour",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/maharajah-jungle-trek/" },
+  { id:"ak13", park:"ak", name:"Wildlife Express Train",                                  type:"Ride",           ll:"noll",url:"https://disneyworld.disney.go.com/attractions/animal-kingdom/wildlife-express-train/" },
+  { id:"ak14", park:"ak", name:"Meet Favorite Disney Pals at Adventurers Outpost",        type:"Character Meet", ll:"noll",url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/adventurers-outpost/" },
+  { id:"ak15", park:"ak", name:"Meet Moana at Character Landing",                         type:"Character Meet", ll:"noll",url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/meet-moana/" },
+  { id:"ak16", park:"ak", name:"Zoogether Day Gathering Spot",                            type:"Character Meet", ll:"noll",url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/zoogether-day-gathering-spot/" },
+  { id:"ak17", park:"ak", name:"Winged Encounters – The Kingdom Takes Flight",            type:"Show",           ll:"noll",url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/winged-encounters-kingdom-takes-flight/" },
+  { id:"ak18", park:"ak", name:"Bluey's Wild World at Conservation Station",              type:"Show",           ll:"noll",url:"https://disneyworld.disney.go.com/entertainment/animal-kingdom/blueys-wild-world/" },
 ];
 
 export const RIDES = RAW_RIDES
@@ -250,7 +269,7 @@ export const RIDES = RAW_RIDES
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 
-const LS_KEY = "dw2026-ll-v8";
+const LS_KEY = `dw-${tripConfig.tripId}-ll-v1`;
 function loadStorage() {
   try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : {}; } catch (_) { return {}; }
 }
