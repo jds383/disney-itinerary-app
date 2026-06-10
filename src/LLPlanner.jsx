@@ -941,7 +941,7 @@ export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, s
       {needsRating.map((ride) => (
         <RideCard key={ride.id} ride={ride} {...cardProps} />
       ))}
-      {ratedAndClosed.length > 0 && (
+      {!showRankings && ratedAndClosed.length > 0 && (
         <div className="rank-sec" style={{marginTop: '0', marginBottom: '10px'}}>
           <div className="rank-hdr" onClick={() => setRatedOpen((o) => !o)}>
             <span className="rank-title">Rated (or Closed) Rides ({ratedAndClosed.length})</span>
