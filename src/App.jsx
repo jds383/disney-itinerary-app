@@ -80,19 +80,15 @@ async function fetchRides() {
 
 // ── Fetch votes from Notion ───────────────────────────────────────────────────
 async function fetchAllVotes() {
-  const parks = tripConfig.parks;
-  const [votesResults, metaData] = await Promise.all([
-    Promise.all(parks.map((park) =>
-      fetch(`${WORKER_URL}/votes?park=${park}`).then((r) => r.json())
-    )),
+  const [votesData, metaData] = await Promise.all([
+    fetch(`${WORKER_URL}/votes`).then((r) => r.json()),
     fetch(`${WORKER_URL}/meta`).then((r) => r.json()),
   ]);
 
   const prefs = {};
 
-  votesResults.forEach((data) => {
-    if (!data.results) return;
-    data.results.forEach((page) => {
+  if (votesData.results) {
+    votesData.results.forEach((page) => {
       const rideId    = page.properties["Ride ID"]?.rich_text?.[0]?.text?.content;
       const person    = page.properties["Person"]?.rich_text?.[0]?.text?.content;
       const prefLabel = page.properties["Preference"]?.select?.name;
@@ -102,7 +98,7 @@ async function fetchAllVotes() {
       prefs[rideId].prefs[person]   = prefKey;
       prefs[rideId].pageIds[person] = page.id;
     });
-  });
+  }
 
   if (metaData.results) {
     metaData.results.forEach((page) => {
@@ -249,6 +245,32 @@ export default function App() {
     });
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    // Clear only Notion-sourced data, preserve UI state and weather cache
+    localStorage.removeItem(LS_KEY);
+    setPrefs({});
+    setRides([]);
+    setLoading(true);
+    setSyncError(null);
+    Promise.all([fetchRides(), fetchAllVotes()])
+      .then(([ridesData, notionData]) => {
+        setRides(ridesData);
+        setPrefs(() => {
+          const merged = { ...notionData };
+          saveStorage(merged);
+          return merged;
+        });
+      })
+      .catch(() => setSyncError("Could not load from server — showing local data."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.reload();
+  }, []);
+
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#FBF7F2", minHeight: "100vh" }}>
       <style>{`
@@ -374,6 +396,28 @@ export default function App() {
         onRdConfirm={handleRdConfirm}
         onLLStatus={handleLLStatus}
       />
+
+      {/* ── App Footer ── */}
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px 32px", textAlign: "center" }}>
+        <div style={{ fontSize: 10, color: "#CCC", fontFamily: "'DM Sans',sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+          {tripConfig.name}
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            style={{ fontSize: 11, fontFamily: "'DM Sans',sans-serif", fontWeight: 600, padding: "6px 14px", borderRadius: 20, border: "1.5px solid #C8C0B6", background: "#F0EBE3", color: "#555", cursor: loading ? "wait" : "pointer", opacity: loading ? 0.5 : 1 }}
+          >
+            {loading ? "Refreshing…" : "↻ Refresh"}
+          </button>
+          <button
+            onClick={handleReset}
+            style={{ fontSize: 11, fontFamily: "'DM Sans',sans-serif", fontWeight: 600, padding: "6px 14px", borderRadius: 20, border: "1.5px solid #C8C0B6", background: "#F0EBE3", color: "#C0392B", cursor: "pointer" }}
+          >
+            ✕ Reset
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

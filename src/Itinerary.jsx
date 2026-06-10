@@ -896,7 +896,7 @@ export function Itinerary({ view, setView, prefs, rides = [], syncing, loading, 
               </div>
             )}
 
-            <div style={{ marginTop:32, fontSize:10, color:"#CCC", textAlign:"center", fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.1em" }}>{tripConfig.name.toUpperCase()}</div>
+            <div style={{ marginTop:32 }} />
           </>
         )}
       </div>
