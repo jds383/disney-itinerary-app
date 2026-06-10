@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ParkRides, Summary, RIDES, saveMetaToNotion, isClosed } from "./LLPlanner";
 import { tripConfig } from "./trip.config";
 
-const WORKER_URL = "https://disney-ll-proxy.45-reactor-puritan.workers.dev";
+const WORKER_URL = "https://disney-intinerary-app.45-reactor-puritan.workers.dev";
 
 // ── Day colors by type/park ───────────────────────────────────────────────────
 const DAY_COLORS = {
