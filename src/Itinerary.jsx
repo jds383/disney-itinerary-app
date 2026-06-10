@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ParkRides, Summary, RIDES, saveMetaToNotion, isClosed } from "./LLPlanner";
+import { ParkRides, Summary, saveMetaToNotion, isClosed } from "./LLPlanner";
 import { tripConfig } from "./trip.config";
 
 const WORKER_URL = "https://disney-intinerary-app.45-reactor-puritan.workers.dev";
@@ -360,7 +360,7 @@ const ACTIVITY_STYLES = {
   "Resort Activity":{ bg:"transparent", badge:"🏨 Resort", badgeBg:"#DBEAFE", badgeColor:"#1E40AF", badgeBorder:"#93C5FD" },
 };
 
-function LLRow({ h, color, borderBottom, onSkip }) {
+function LLRow({ h, color, borderBottom, onSkip, rides = [] }) {
   const [open, setOpen] = useState(false);
   const isMeet   = h.type === "Character Meet";
   const isResort = h.type === "Resort Activity";
@@ -371,9 +371,9 @@ function LLRow({ h, color, borderBottom, onSkip }) {
     "Mystery Character Meet (D. Visa)": "https://disneyrewards.com/parks-and-vacations/walt-disney-world-perks/#characterexperience",
   };
   const rideUrl = h.url || (isMeet
-    ? MEET_URLS[h.rideName] ?? RIDES.find(r => r.name === h.rideName)?.url ?? null
+    ? MEET_URLS[h.rideName] ?? rides.find(r => r.name === h.rideName)?.url ?? null
     : isResort ? null
-    : RIDES.find(r => r.id === h.rideId)?.url);
+    : rides.find(r => r.id === h.rideId)?.url);
   const isFlight = h.type === "Flight";
   const locationPart = !isFlight && (h.location ? h.location : (h.resort || null));
   const collapsibleText = locationPart && h.subtext ? `${locationPart} · ${h.subtext}` : (h.subtext || locationPart || null);
@@ -480,7 +480,7 @@ function HighlightRow({ h, color, borderBottom }) {
 }
 
 // ── RidePreferences ───────────────────────────────────────────────────────────
-function RidePreferences({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus }) {
+function RidePreferences({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus, rides = [] }) {
   const parks = tripConfig.parks.map(id => ({
     id,
     name: id==="mk"?"Magic Kingdom":id==="ep"?"EPCOT":id==="hs"?"Hollywood Studios":id==="ak"?"Animal Kingdom":id.toUpperCase(),
@@ -503,7 +503,7 @@ function RidePreferences({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, o
           }}>{p.name}</button>
         ))}
       </div>
-      <ParkRides parkId={activePark} prefs={prefs} syncing={syncing} onPref={onPref} onNotes={onNotes} onClosed={onClosed} onRdNom={onRdNom} onRdConfirm={onRdConfirm} onLLStatus={onLLStatus} showRankings={false} />
+      <ParkRides parkId={activePark} prefs={prefs} syncing={syncing} onPref={onPref} onNotes={onNotes} onClosed={onClosed} onRdNom={onRdNom} onRdConfirm={onRdConfirm} onLLStatus={onLLStatus} showRankings={false} rides={rides} />
     </div>
   );
 }
@@ -607,7 +607,7 @@ function CollapsedDayHeader({ day, onFocus, onAdd }) {
 }
 
 // ── Expanded day content ──────────────────────────────────────────────────────
-function DayContent({ day, bookedLLs, updateVisibility, onCollapse }) {
+function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [] }) {
   const color = getDayColor(day);
 
   // Weather carousel
@@ -717,7 +717,7 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse }) {
                     <QuickServiceDining color={color} />
                   </>
                 ) : (
-                  <LLRow h={h} color={color} borderBottom={hi<mergedHighlights.length-1?"1px solid #F5F0EA":"none"} onSkip={(pageId) => updateVisibility(pageId,"Archive")} />
+                  <LLRow h={h} color={color} borderBottom={hi<mergedHighlights.length-1?"1px solid #F5F0EA":"none"} onSkip={(pageId) => updateVisibility(pageId,"Archive")} rides={rides} />
                 )
               ) : h.alternatives ? (
                 <div style={{ borderTop:"1px solid #F5F0EA" }}>
@@ -761,7 +761,7 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse }) {
 }
 
 // ── Main Itinerary export ─────────────────────────────────────────────────────
-export function Itinerary({ view, setView, prefs, syncing, loading, syncError, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus }) {
+export function Itinerary({ view, setView, prefs, rides = [], syncing, loading, syncError, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus }) {
   const [calendarDays, setCalendarDays] = useState([]);
   const [bookedLLs,    setBookedLLs]    = useState([]);
   const [expanded,     setExpanded]     = useState(null); // Set of expanded date strings, null = not yet initialized
@@ -813,12 +813,12 @@ export function Itinerary({ view, setView, prefs, syncing, loading, syncError, o
   };
 
   // Wrap handlers
-  const w_onPref      = (rideId, pid, pref) => onPref(rideId, pid, pref, RIDES.find(r => r.id === rideId));
-  const w_onNotes     = (rideId, val)        => onNotes(rideId, val, RIDES.find(r => r.id === rideId), saveMetaToNotion);
-  const w_onClosed    = (rideId)             => onClosed(rideId, RIDES.find(r => r.id === rideId), isClosed, saveMetaToNotion);
-  const w_onRdNom     = (rideId)             => onRdNom(rideId, RIDES.find(r => r.id === rideId), saveMetaToNotion);
-  const w_onRdConfirm = (parkId, rideId)     => onRdConfirm(parkId, rideId, RIDES.filter(r => r.park === parkId), saveMetaToNotion);
-  const w_onLLStatus  = (rideId, status)     => onLLStatus(rideId, status, RIDES.find(r => r.id === rideId), saveMetaToNotion);
+  const w_onPref      = (rideId, pid, pref) => onPref(rideId, pid, pref, rides.find(r => r.id === rideId));
+  const w_onNotes     = (rideId, val)        => onNotes(rideId, val, rides.find(r => r.id === rideId), saveMetaToNotion);
+  const w_onClosed    = (rideId)             => onClosed(rideId, rides.find(r => r.id === rideId), isClosed, saveMetaToNotion);
+  const w_onRdNom     = (rideId)             => onRdNom(rideId, rides.find(r => r.id === rideId), saveMetaToNotion);
+  const w_onRdConfirm = (parkId, rideId)     => onRdConfirm(parkId, rideId, rides.filter(r => r.park === parkId), saveMetaToNotion);
+  const w_onLLStatus  = (rideId, status)     => onLLStatus(rideId, status, rides.find(r => r.id === rideId), saveMetaToNotion);
 
   return (
     <div style={{ minHeight:"100vh", background:"#FBF7F2", fontFamily:"'DM Sans',sans-serif", padding:"16px 20px 40px" }}>
@@ -837,7 +837,7 @@ export function Itinerary({ view, setView, prefs, syncing, loading, syncError, o
         {/* ── Ride Preferences ── */}
         {view === "preferences" && (
           <RidePreferences
-            prefs={prefs} syncing={syncing}
+            prefs={prefs} syncing={syncing} rides={rides}
             onPref={w_onPref} onNotes={w_onNotes} onClosed={w_onClosed}
             onRdNom={w_onRdNom} onRdConfirm={w_onRdConfirm} onLLStatus={w_onLLStatus}
           />
@@ -845,7 +845,7 @@ export function Itinerary({ view, setView, prefs, syncing, loading, syncError, o
 
         {/* ── LL Summary ── */}
         {view === "llsummary" && (
-          <Summary prefs={prefs} syncing={syncing} onPref={w_onPref} onNotes={w_onNotes} onClosed={w_onClosed} onRdNom={w_onRdNom} onRdConfirm={w_onRdConfirm} onLLStatus={w_onLLStatus} />
+          <Summary prefs={prefs} syncing={syncing} rides={rides} onPref={w_onPref} onNotes={w_onNotes} onClosed={w_onClosed} onRdNom={w_onRdNom} onRdConfirm={w_onRdConfirm} onLLStatus={w_onLLStatus} />
         )}
 
         {/* ── Itinerary ── */}
@@ -877,6 +877,7 @@ export function Itinerary({ view, setView, prefs, syncing, loading, syncError, o
                           bookedLLs={bookedLLs}
                           updateVisibility={updateVisibility}
                           onCollapse={() => addDay(day.date)}
+                          rides={rides}
                         />
                       )}
                     </div>

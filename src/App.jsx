@@ -11,10 +11,18 @@ export const LL_STATUS = {
   LATER:    "Later",
   DONTBOOK: "Don't Book",
 };
+
 export const PEOPLE = tripConfig.people;
 
 const PREF_NOTION = { must: "Must Do", like: "Like To", neutral: "Neutral", skip: "Skip It" };
 const NOTION_PREF = { "Must Do": "must", "Like To": "like", "Neutral": "neutral", "Skip It": "skip" };
+
+const LL_MAP = {
+  "Individual LL (Single Pass)": "ill",
+  "Multipass Tier 1":            "mp1",
+  "Multipass Tier 2":            "mp2",
+  "No Lightning Lane":           "noll",
+};
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const LS_KEY = `dw-${tripConfig.tripId}-ll-v1`;
@@ -25,7 +33,52 @@ function saveStorage(data) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch (_) {}
 }
 
-// ── Notion fetch ──────────────────────────────────────────────────────────────
+// ── Fetch rides from Notion ───────────────────────────────────────────────────
+function toDisplayName(raw) {
+  return raw.replace(/^(The|A|An) /i, (_, p) => `(${p}) `);
+}
+function sortKey(name) {
+  return name.replace(/^\((?:The|A|An)\)\s*/i, "").toLowerCase();
+}
+
+async function fetchRides() {
+  const res = await fetch(`${WORKER_URL}/rides`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  if (!data.results) return [];
+  const parkMap = {
+    "Magic Kingdom":     "mk",
+    "EPCOT":             "ep",
+    "Hollywood Studios": "hs",
+    "Animal Kingdom":    "ak",
+  };
+  return data.results
+    .map(page => {
+      const props = page.properties;
+      const name     = props["Ride Name"]?.rich_text?.[0]?.text?.content ?? "";
+      const id       = props["Ride ID"]?.title?.[0]?.text?.content ?? "";
+      const parkName = props["Park"]?.select?.name ?? "";
+      const park     = parkMap[parkName] ?? parkName.toLowerCase().slice(0, 2);
+      const llLabel  = props["Lightning Lane"]?.select?.name ?? "No Lightning Lane";
+      const ll       = LL_MAP[llLabel] ?? "noll";
+      const illPrice = props["ILL Price"]?.select?.name ?? null;
+      const type     = props["Type"]?.select?.name ?? "Ride";
+      const url      = props["userDefined:URL"]?.url ?? "";
+      const visa     = props["Visa Only"]?.checkbox ?? false;
+      const hours    = props["Hours"]?.rich_text?.[0]?.text?.content ?? null;
+      const location = props["Location"]?.rich_text?.[0]?.text?.content ?? null;
+      const earlyEntry = props["Early Entry"]?.checkbox ?? false;
+      const llSellout  = props["LL Sellout Time"]?.rich_text?.[0]?.text?.content ?? null;
+      const avgStandby = props["Avg Standby Wait"]?.rich_text?.[0]?.text?.content ?? null;
+      const waitInsight= props["Wait Insight"]?.rich_text?.[0]?.text?.content ?? null;
+      if (!id || !name) return null;
+      return { id, park, name, displayName: toDisplayName(name), ll, illPrice, type, url, visa, hours, location, earlyEntry, llSellout, avgStandby, waitInsight };
+    })
+    .filter(Boolean)
+    .sort((a, b) => sortKey(a.displayName).localeCompare(sortKey(b.displayName)));
+}
+
+// ── Fetch votes from Notion ───────────────────────────────────────────────────
 async function fetchAllVotes() {
   const parks = tripConfig.parks;
   const [votesResults, metaData] = await Promise.all([
@@ -66,7 +119,7 @@ async function fetchAllVotes() {
       prefs[rideId].llStatus = llStatus;
       prefs[rideId].notes    = notes;
       if (rdConfirmed) {
-        const park = ["mk","ep","hs"].find((p) => rideId.startsWith(p));
+        const park = tripConfig.parks.find((p) => rideId.startsWith(p));
         if (park) prefs[`rdc_${park}`] = rideId;
       }
     });
@@ -78,17 +131,19 @@ async function fetchAllVotes() {
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [view, setViewRaw] = useState(() => {
-    try { return localStorage.getItem("dw2026-view") || "itinerary"; } catch (e) { return "itinerary"; }
+    try { return localStorage.getItem(`dw-${tripConfig.tripId}-view`) || "itinerary"; } catch (e) { return "itinerary"; }
   });
-  const setView = (v) => { setViewRaw(v); try { localStorage.setItem("dw2026-view", v); } catch (e) {} };
+  const setView = (v) => { setViewRaw(v); try { localStorage.setItem(`dw-${tripConfig.tripId}-view`, v); } catch (e) {} };
   const [prefs,     setPrefs]     = useState(() => loadStorage());
+  const [rides,     setRides]     = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [syncing,   setSyncing]   = useState({});
   const [syncError, setSyncError] = useState(null);
 
   useEffect(() => {
-    fetchAllVotes()
-      .then((notionData) => {
+    Promise.all([fetchRides(), fetchAllVotes()])
+      .then(([ridesData, notionData]) => {
+        setRides(ridesData);
         setPrefs((local) => {
           const merged = { ...local };
           Object.entries(notionData).forEach(([key, data]) => {
@@ -308,6 +363,7 @@ export default function App() {
         view={view}
         setView={setView}
         prefs={prefs}
+        rides={rides}
         syncing={syncing}
         loading={loading}
         syncError={syncError}
