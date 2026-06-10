@@ -701,7 +701,7 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [] }
             <WeatherStack weather={weather} error={weatherError} />
             {weatherError === "tooSoon" ? (
               <div style={{ fontSize:8, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>
-                {(() => { const d = new Date(day.date + "T12:00:00"); return `Available ${d.getMonth()+1}/${d.getDate()}`; })()}
+                {(() => { const d = new Date(new Date(day.date + "T12:00:00") - 16 * 86400000); return `Available ${d.getMonth()+1}/${d.getDate()}`; })()}
               </div>
             ) : weatherLocs.length>1 && activeLoc.label && (
               <div style={{ fontSize:8, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>{activeLoc.label}</div>
