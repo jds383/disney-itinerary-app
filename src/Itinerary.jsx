@@ -533,18 +533,20 @@ function ViewToggle({ view, setView }) {
 function CountdownTitle() {
   const now   = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dep   = new Date(2026, 7, 11); // Aug 11
-  const ret   = new Date(2026, 7, 21); // Aug 21
-  const seeYa = new Date(2026, 7, 21, 14, 0);
+  const [depY, depM, depD] = tripConfig.startDate.split("-").map(Number);
+  const [retY, retM, retD] = tripConfig.endDate.split("-").map(Number);
+  const dep   = new Date(depY, depM - 1, depD);
+  const ret   = new Date(retY, retM - 1, retD);
+  const seeYa = new Date(retY, retM - 1, retD, 14, 0);
   let text;
   if (now >= seeYa) {
     text = "See ya real soon! 👋";
   } else if (today < dep) {
     const n = Math.round((dep - today) / 86400000);
-    text = `${n} ${n===1?"day":"days"} until Disney World August 2026`;
+    text = `${n} ${n===1?"day":"days"} until ${tripConfig.name}`;
   } else if (today <= ret) {
     const n = Math.round((today - dep) / 86400000) + 1;
-    text = `Day ${n} of Disney World August 2026`;
+    text = `Day ${n} of ${tripConfig.name}`;
   } else {
     text = "See ya real soon! 👋";
   }
@@ -883,7 +885,7 @@ export function Itinerary({ view, setView, prefs, syncing, loading, syncError, o
               </div>
             )}
 
-            <div style={{ marginTop:32, fontSize:10, color:"#CCC", textAlign:"center", fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.1em" }}>DISNEY WORLD — AUGUST 2026</div>
+            <div style={{ marginTop:32, fontSize:10, color:"#CCC", textAlign:"center", fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.1em" }}>{tripConfig.name.toUpperCase()}</div>
           </>
         )}
       </div>

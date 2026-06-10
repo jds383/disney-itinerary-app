@@ -28,11 +28,14 @@ const LL_STATUS_COLORS = {
   [LL_STATUS.DONTBOOK]: "#C0392B",
 };
 
-export const PARKS = [
-  { id: "mk", name: "Magic Kingdom",     color: "#2C5F8A" },
-  { id: "ep", name: "EPCOT",             color: "#4A2C6B" },
-  { id: "hs", name: "Hollywood Studios", color: "#8A3A2C" },
-];
+const PARK_META = {
+  mk: { name: "Magic Kingdom",     color: "#2C5F8A" },
+  ep: { name: "EPCOT",             color: "#4A2C6B" },
+  hs: { name: "Hollywood Studios", color: "#8A3A2C" },
+  ak: { name: "Animal Kingdom",    color: "#5C7A2E" },
+};
+
+export const PARKS = tripConfig.parks.map(id => ({ id, ...PARK_META[id] }));
 
 function toDisplayName(raw) {
   return raw.replace(/^(The|A|An) /i, (_, p) => `(${p}) `);
@@ -864,7 +867,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus }) {
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 
-const TRIP_START = new Date(2026, 4, 21); // May 21 2026
+const TRIP_START = new Date(tripConfig.startDate + "T00:00:00");
 
 // Parse "~8:09 AM" → minutes since midnight for sorting (Rarely = very large number)
 function selloutMinutes(rideId) {
