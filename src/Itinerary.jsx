@@ -668,7 +668,7 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [] }
   return (
     <div style={{ background:"#FFF", borderBottom:"1px solid #EDE8E1" }}>
       {/* Colored header */}
-      <div style={{ background: color }}>
+      <div style={{ background: color, cursor: "pointer" }} onClick={onCollapse}>
         <div style={{ padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12 }}>
           <div style={{ flex:1, minWidth:0, textAlign:"left" }}>
             <div style={{ fontSize:9, letterSpacing:"0.15em", textTransform:"uppercase", color:"rgba(255,255,255,0.6)", fontFamily:"'DM Sans',sans-serif", marginBottom:3 }}>
@@ -684,14 +684,11 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [] }
             )}
           </div>
           <div
-            style={{ flexShrink:0, textAlign:"right", cursor: weatherLocs.length>1 ? "pointer" : "default", display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}
+            style={{ flexShrink:0, textAlign:"right", display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}
           >
-            <button
-              onClick={onCollapse}
-              style={{ fontSize:14, color:"rgba(255,255,255,0.5)", background:"none", border:"none", cursor:"pointer", padding:0, lineHeight:1, alignSelf:"flex-end" }}
-            >▾</button>
+            <span style={{ fontSize:14, color:"rgba(255,255,255,0.5)", lineHeight:1, alignSelf:"flex-end" }}>▾</span>
             <div
-              onClick={() => weatherLocs.length>1 && setLocIdx(i => (i+1) % weatherLocs.length)}
+              onClick={e => { e.stopPropagation(); weatherLocs.length>1 && setLocIdx(i => (i+1) % weatherLocs.length); }}
               style={{ cursor: weatherLocs.length>1 ? "pointer" : "default" }}
             >
             {weatherLocs.length > 1 && (
@@ -702,7 +699,11 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [] }
               </div>
             )}
             <WeatherStack weather={weather} error={weatherError} />
-            {weatherLocs.length>1 && activeLoc.label && (
+            {weatherError === "tooSoon" ? (
+              <div style={{ fontSize:8, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>
+                {(() => { const d = new Date(day.date + "T12:00:00"); return `Available ${d.getMonth()+1}/${d.getDate()}`; })()}
+              </div>
+            ) : weatherLocs.length>1 && activeLoc.label && (
               <div style={{ fontSize:8, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>{activeLoc.label}</div>
             )}
             </div>
