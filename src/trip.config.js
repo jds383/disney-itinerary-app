@@ -6,5 +6,12 @@ export const tripConfig = {
     activities: "89932f0e-d153-8203-bedc-879b3b55fe03",
     ridePreferences: "d1b32f0e-d153-83a2-93e1-870592a25883",
     diningCredits: null,
-  }
+  },
+  people: [
+    { id: "J", name: "Jeffrey" },
+    { id: "A", name: "Alyssa" },
+    { id: "w", name: "William" },
+    { id: "r", name: "Rebecca" },
+  ],
+  parks: ["mk", "ep", "hs", "ak"],
 }
