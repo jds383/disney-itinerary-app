@@ -176,6 +176,9 @@ function useWeather(date, lat, lon) {
   const cacheKey = `${date}|${lat}|${lon}`;
   useEffect(() => {
     if (!date || !lat || !lon) return;
+    const today = new Date().toISOString().split("T")[0];
+    const daysAway = (new Date(date + "T12:00:00") - new Date(today + "T12:00:00")) / 86400000;
+    if (daysAway > 16) { setError("tooSoon"); setWeather(null); return; }
     setWeather(null); setError(null);
     (async () => {
       const cached = getCachedWeather(cacheKey);
@@ -199,7 +202,13 @@ function useWeather(date, lat, lon) {
 }
 
 function WeatherStack({ weather, error }) {
-  if (error === "not yet available") return <div style={{textAlign:"right",flexShrink:0}}><div style={{fontSize:9,color:"rgba(255,255,255,0.35)",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>no data</div></div>;
+  if (error === "tooSoon") return (
+    <div style={{textAlign:"right",flexShrink:0}}>
+      <div style={{fontSize:24,lineHeight:1,marginBottom:4}}>🌡️</div>
+      <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",fontFamily:"'DM Sans',sans-serif",lineHeight:1.5,whiteSpace:"nowrap"}}>—°</div>
+      <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",fontFamily:"'DM Sans',sans-serif",lineHeight:1.5,whiteSpace:"nowrap"}}>—°</div>
+    </div>
+  );
   if (error) return <div style={{textAlign:"right",flexShrink:0}}><div style={{fontSize:18,lineHeight:1,marginBottom:4}}>⚠️</div></div>;
   if (!weather) return <div style={{textAlign:"right",flexShrink:0}}><div style={{fontSize:16,lineHeight:1,marginBottom:4}}>🌡️</div><div style={{fontSize:9,color:"rgba(255,255,255,0.35)",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>fetching...</div></div>;
   return (
@@ -223,8 +232,8 @@ function WeatherAlert({ weather }) {
 
 // ── Collapsed weather (small, inline for header) ──────────────────────────────
 function WeatherInline({ date, lat, lon }) {
-  const { weather } = useWeather(date, lat, lon);
-  if (!weather) return <span style={{fontSize:11,color:"#AAA",fontFamily:"'DM Sans',sans-serif"}}>🌡️</span>;
+  const { weather, error } = useWeather(date, lat, lon);
+  if (error === "tooSoon" || !weather) return null;
   return (
     <span style={{fontSize:11,color:"#888",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>
       {weather.stormWindow ? "⛈️" : weather.icon} {weather.high}°/{weather.low}°
