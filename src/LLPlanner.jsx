@@ -364,7 +364,7 @@ function RideCard({ ride, prefs, onPref, onNotes, onClosed, onRdNom, syncing }) 
       <div className="ride-header">
         <div className="name-row">
           <span className="ride-name">
-            <a href={ride.url} target="_blank" rel="noreferrer">{ride.displayName} ↗</a>
+            {ride.url ? <a href={ride.url} target="_blank" rel="noreferrer">{ride.displayName} ↗</a> : <span>{ride.displayName}</span>}
           </span>
           {!closed && <span className={`score-badge ${scoreColorClass(score)}`}>{score > 0 ? "+" : ""}{score}</span>}
         </div>
@@ -473,7 +473,7 @@ function RankItem({ r, num, prefs, parkId, onLLStatus, rides = [] }) {
           {r.score > 0 ? "+" : ""}{r.score}
         </span>
         <span className={`r-name${isDemoted ? " r-name-skip" : ""}`}>
-          <a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a>
+          {r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a> : <span className="r-link">{r.displayName}</span>}
           {r.illPrice && !isDemoted && <span className="ill-price">({r.illPrice})</span>}
         </span>
         {isRD && <span className="r-pill rd-tag">RD ✓</span>}
@@ -541,7 +541,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
           <div className="r-item-top">
             <span className="r-num">{i + 1}</span>
             <span className={`score-badge ${scoreColorClass(r.score)}`}>{r.score > 0 ? "+" : ""}{r.score}</span>
-            <span className="r-name"><a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a></span>
+            <span className="r-name">{r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a> : <span className="r-link">{r.displayName}</span>}</span>
             {isConfRD && <span className="r-pill rd-tag">RD ✓</span>}
             {isRDNom  && <span className="r-pill rd-tag">RD?</span>}
             {showLL && pill}
@@ -617,7 +617,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
                     <div className="r-item-top">
                       <span className="r-num">·</span>
                       <span className={`score-badge ${scoreColorClass(s)}`}>{s > 0 ? "+" : ""}{s}</span>
-                      <span className="r-name"><a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a></span>
+                      <span className="r-name">{r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a> : <span className="r-link">{r.displayName}</span>}</span>
                       <div className={`rd-chk${isConf ? " on" : ""}`} onClick={() => onRdConfirm(parkId, r.id)}>{isConf ? "✓" : ""}</div>
                     </div>
                   </div>
@@ -842,7 +842,7 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
         <div className="summary-item-top">
           <span className="summary-badge" style={{ background: bg, color, border: `1px solid ${border}` }}>{label}</span>
           <div className="summary-ride-info">
-            <a href={r.url} target="_blank" rel="noreferrer" className="summary-ride-name">{r.displayName} ↗</a>
+            {r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="summary-ride-name">{r.displayName} ↗</a> : <span className="summary-ride-name">{r.displayName}</span>}
             {who && (
               <div style={{ fontSize: 10, color: "#888", fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>
                 Book for: <span style={{ fontWeight: 600, color: "#555" }}>{who}</span>
@@ -961,7 +961,7 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
                         <div className="summary-item-top">
                           <span className="summary-badge" style={{ background: "#FFFDE7", color: "#B8860B", border: "1px solid #FFE082" }}>{`2nd Round ${i + 1}`}</span>
                           <div className="summary-ride-info">
-                            <a href={r.url} target="_blank" rel="noreferrer" className="summary-ride-name">{r.displayName} ↗</a>
+                            {r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="summary-ride-name">{r.displayName} ↗</a> : <span className="summary-ride-name">{r.displayName}</span>}
                           </div>
                         </div>
                       </div>
