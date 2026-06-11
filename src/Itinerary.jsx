@@ -57,11 +57,19 @@ async function fetchBookedLLs() {
       .filter(page => (page.properties["Visibility"]?.select?.name ?? "Show") !== "Delete")
       .map((page) => {
         const props = page.properties;
+        // Parse Days of Week — stored as JSON array string e.g. '["Mon","Wed","Fri"]'
+        let daysOfWeek = [];
+        try {
+          const raw = props["Days of Week"]?.multi_select?.map(o => o.name) ?? [];
+          daysOfWeek = raw.length > 0 ? raw : [];
+        } catch (e) { daysOfWeek = []; }
         return {
           rideName:   props["Name"]?.title?.[0]?.text?.content ?? "",
           rideId:     props["Ride ID"]?.rich_text?.[0]?.text?.content ?? "",
           park:       props["Park"]?.select?.name ?? "",
           date:       props["Date"]?.date?.start ?? "",
+          dateEnd:    props["Date"]?.date?.end ?? "",
+          daysOfWeek,
           startTime:  props["Start Time"]?.rich_text?.[0]?.text?.content ?? "",
           endTime:    props["End Time"]?.rich_text?.[0]?.text?.content ?? "",
           party:      props["Party"]?.rich_text?.[0]?.text?.content ?? "All",
@@ -105,6 +113,59 @@ async function fetchCalendarDays() {
       .filter(d => d.date && d.dayType !== "Test")
       .sort((a, b) => a.date.localeCompare(b.date));
   } catch (e) { return []; }
+}
+
+// ── Day-of-week abbreviation map ──────────────────────────────────────────────
+const DOW_ABBR = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function activityMatchesDay(ll, day) {
+  // Always respect visibility
+  if (ll.visibility === "Archive" || ll.visibility === "Delete") return false;
+
+  const hasDateRange = ll.date && ll.dateEnd;
+  const hasSingleDate = ll.date && !ll.dateEnd;
+  const hasDaysOfWeek = ll.daysOfWeek && ll.daysOfWeek.length > 0;
+
+  // Single date — exact match only (existing LL bookings, hotel entries, etc.)
+  if (hasSingleDate && !hasDaysOfWeek) {
+    return ll.date === day.date;
+  }
+
+  // Date range with days of week — check range + day of week + resort
+  if (hasDateRange && hasDaysOfWeek) {
+    if (day.date < ll.date || day.date > ll.dateEnd) return false;
+    const dow = DOW_ABBR[new Date(day.date + "T12:00:00").getDay()];
+    if (!ll.daysOfWeek.includes(dow)) return false;
+    if (ll.resort) {
+      const resortMatch = ll.resort === day.locStart || ll.resort === day.locEnd;
+      if (!resortMatch) return false;
+    }
+    return true;
+  }
+
+  // Date range without days of week — show every day in range at matching resort
+  if (hasDateRange && !hasDaysOfWeek) {
+    if (day.date < ll.date || day.date > ll.dateEnd) return false;
+    if (ll.resort) {
+      const resortMatch = ll.resort === day.locStart || ll.resort === day.locEnd;
+      if (!resortMatch) return false;
+    }
+    return true;
+  }
+
+  // Single date with days of week — treat date as range start, no end
+  if (hasSingleDate && hasDaysOfWeek) {
+    if (day.date < ll.date) return false;
+    const dow = DOW_ABBR[new Date(day.date + "T12:00:00").getDay()];
+    if (!ll.daysOfWeek.includes(dow)) return false;
+    if (ll.resort) {
+      const resortMatch = ll.resort === day.locStart || ll.resort === day.locEnd;
+      if (!resortMatch) return false;
+    }
+    return true;
+  }
+
+  return false;
 }
 
 // ── Time helpers ──────────────────────────────────────────────────────────────
@@ -689,7 +750,7 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [], 
 
   // Activities for this day
   const llsForDay = bookedLLs
-    .filter(ll => ll.date === day.date && (ll.visibility === "Show" || !ll.visibility) && !isLLExpired(ll.endTime, ll.date, ll.startTime))
+    .filter(ll => activityMatchesDay(ll, day) && !isLLExpired(ll.endTime, ll.date || day.date, ll.startTime))
     .map(ll => ({
       _type: "ll",
       sortTime: ll.sortTime ?? parseTimeToInt(ll.startTime),
@@ -704,7 +765,8 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [], 
   const mergedHighlights = llsForDay.sort((a,b) => (a.sortTime??9999) - (b.sortTime??9999));
 
   const archivedLLs = bookedLLs.filter(ll =>
-    ll.date === day.date && (ll.visibility === "Archive" || isLLExpired(ll.endTime, ll.date, ll.startTime))
+    (ll.date === day.date || (ll.dateEnd && day.date >= ll.date && day.date <= ll.dateEnd)) &&
+    (ll.visibility === "Archive" || isLLExpired(ll.endTime, ll.date || day.date, ll.startTime))
   );
 
   return (
