@@ -8,7 +8,7 @@ export const tripConfig = {
     activities: "37932f0ed153801c859ae950f2def6d5",
     ridePreferences: "d1b32f0e-d153-83a2-93e1-870592a25883",
     disneyRides: "41932f0ed153827eb3e20125df01817b",
-    diningCredits: null,
+    diningCredits: "9cb32f0e-d153-83c8-b1b2-07822c7b593a",
   },
   people: [
     { id: "J", name: "Jeffrey" },
