@@ -448,18 +448,60 @@ function ArchivedSection({ archivedLLs, onRestore }) {
 }
 
 // ── Dining Credits ─────────────────────────────────────────────────────────────
-function DiningCredits() {
-  const [open, setOpen] = useState(false);
-  // Dining plan data not yet configured for this trip
+function DiningCredits({ credits = [], date, onUpdateCredit }) {
+  const [open, setOpen] = useState(true);
+
+  // Filter credits available on this date
+  const dayCredits = credits.filter(c => {
+    if (!c.availStart) return false;
+    const start = c.availStart;
+    const end   = c.availEnd ?? c.availStart;
+    return date >= start && date <= end;
+  });
+
+  if (!dayCredits.length) return null;
+
+  const used   = dayCredits.filter(c => c.dateUsed);
+  const unused = dayCredits.filter(c => !c.dateUsed);
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const typeIcon = (t) => t === "Quick Service" ? "🥡" : t === "Sit Down" ? "🍽️" : t === "Snack" ? "🍦" : t === "Mug" ? "☕" : "🎟️";
+
+  const handleToggle = (credit) => {
+    if (!onUpdateCredit) return;
+    onUpdateCredit(credit.pageId, credit.dateUsed ? null : today);
+  };
+
   return (
     <div style={{ marginTop:12, borderRadius:12, border:"1px solid #EDE8E1", overflow:"hidden", background:"#FFF" }}>
       <div onClick={() => setOpen(o=>!o)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 16px", cursor:"pointer", background:"#FAFAF8" }}>
-        <span style={{ fontSize:13, fontWeight:600, color:"#1A1A1A", fontFamily:"'DM Sans',sans-serif" }}>🍽️ Dining Plan Credits</span>
+        <span style={{ fontSize:13, fontWeight:600, color:"#1A1A1A", fontFamily:"'DM Sans',sans-serif" }}>
+          🍽️ Dining Credits · {unused.length} remaining
+        </span>
         <span style={{ fontSize:10, color:"#CCC", transform:open?"rotate(180deg)":"none", transition:"transform 0.2s" }}>▾</span>
       </div>
       {open && (
-        <div style={{ padding:"16px", borderTop:"1px solid #EDE8E1", textAlign:"center" }}>
-          <div style={{ fontSize:12, color:"#AAA", fontFamily:"'DM Sans',sans-serif" }}>No dining plan data for this trip yet.</div>
+        <div style={{ padding:"8px 0", borderTop:"1px solid #EDE8E1" }}>
+          {dayCredits.map((c, i) => (
+            <div key={c.pageId} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 16px", borderBottom: i < dayCredits.length - 1 ? "1px solid #F5F0EA" : "none", opacity: c.dateUsed ? 0.5 : 1 }}>
+              <span style={{ fontSize:16, flexShrink:0 }}>{typeIcon(c.creditType)}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:12, color:"#1A1A1A", fontFamily:"'DM Sans',sans-serif" }}>
+                  {c.creditType}{c.person ? ` · ${c.person}` : ""}
+                </div>
+                {c.dateUsed && (
+                  <div style={{ fontSize:10, color:"#AAA", fontFamily:"'DM Sans',sans-serif" }}>Used {c.dateUsed}</div>
+                )}
+              </div>
+              <button
+                onClick={() => handleToggle(c)}
+                style={{ fontSize:10, fontFamily:"'DM Sans',sans-serif", fontWeight:600, padding:"3px 10px", borderRadius:12, border: c.dateUsed ? "1.5px solid #C8C0B6" : "1.5px solid #1A6B4A", background: c.dateUsed ? "#F0EBE3" : "#F1F8F4", color: c.dateUsed ? "#888" : "#1A6B4A", cursor:"pointer", flexShrink:0 }}
+              >
+                {c.dateUsed ? "Unmark" : "Mark Used"}
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -616,7 +658,7 @@ function CollapsedDayHeader({ day, onFocus, onAdd }) {
 }
 
 // ── Expanded day content ──────────────────────────────────────────────────────
-function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [] }) {
+function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [], credits = [], onUpdateCredit }) {
   const color = getDayColor(day);
 
   // Weather carousel
@@ -765,13 +807,13 @@ function DayContent({ day, bookedLLs, updateVisibility, onCollapse, rides = [] }
       )}
 
       <ArchivedSection archivedLLs={archivedLLs} onRestore={(pageId) => updateVisibility(pageId,"Show")} />
-      <DiningCredits />
+      <DiningCredits credits={credits} date={day.date} onUpdateCredit={onUpdateCredit} />
     </div>
   );
 }
 
 // ── Main Itinerary export ─────────────────────────────────────────────────────
-export function Itinerary({ view, setView, prefs, rides = [], syncing, loading, syncError, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus }) {
+export function Itinerary({ view, setView, prefs, rides = [], credits = [], onUpdateCredit, syncing, loading, syncError, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus }) {
   const [calendarDays, setCalendarDays] = useState([]);
   const [bookedLLs,    setBookedLLs]    = useState([]);
   const [expanded,     setExpanded]     = useState(null); // Set of expanded date strings, null = not yet initialized
@@ -901,6 +943,8 @@ export function Itinerary({ view, setView, prefs, rides = [], syncing, loading, 
                           updateVisibility={updateVisibility}
                           onCollapse={() => addDay(day.date)}
                           rides={rides}
+                          credits={credits}
+                          onUpdateCredit={onUpdateCredit}
                         />
                       )}
                     </div>

@@ -78,7 +78,30 @@ async function fetchRides() {
     .sort((a, b) => sortKey(a.displayName).localeCompare(sortKey(b.displayName)));
 }
 
-// ── Fetch votes from Notion ───────────────────────────────────────────────────
+// ── Fetch dining credits from Notion ─────────────────────────────────────────
+async function fetchCredits() {
+  try {
+    const res = await fetch(`${WORKER_URL}/credits`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.results) return [];
+    return data.results.map(page => {
+      const props = page.properties;
+      return {
+        pageId:      page.id,
+        name:        props["Name"]?.title?.[0]?.text?.content ?? "",
+        creditType:  props["Credit Type"]?.select?.name ?? "",
+        person:      props["Person"]?.rich_text?.[0]?.text?.content ?? "",
+        family:      props["Family"]?.select?.name ?? "",
+        availStart:  props["Date Available"]?.date?.start ?? null,
+        availEnd:    props["Date Available"]?.date?.end ?? null,
+        dateUsed:    props["Date Used"]?.date?.start ?? null,
+        creditNum:   props["Credit #"]?.number ?? null,
+        resort:      props["Resort"]?.select?.name ?? null,
+      };
+    }).filter(c => c.family === tripConfig.family);
+  } catch (e) { return []; }
+}
 async function fetchAllVotes() {
   const [votesData, metaData] = await Promise.all([
     fetch(`${WORKER_URL}/votes`).then((r) => r.json()),
@@ -132,14 +155,16 @@ export default function App() {
   const setView = (v) => { setViewRaw(v); try { localStorage.setItem(`dw-${tripConfig.tripId}-view`, v); } catch (e) {} };
   const [prefs,     setPrefs]     = useState(() => loadStorage());
   const [rides,     setRides]     = useState([]);
+  const [credits,   setCredits]   = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [syncing,   setSyncing]   = useState({});
   const [syncError, setSyncError] = useState(null);
 
   useEffect(() => {
-    Promise.all([fetchRides(), fetchAllVotes()])
-      .then(([ridesData, notionData]) => {
+    Promise.all([fetchRides(), fetchAllVotes(), fetchCredits()])
+      .then(([ridesData, notionData, creditsData]) => {
         setRides(ridesData);
+        setCredits(creditsData);
         setPrefs((local) => {
           const merged = { ...local };
           Object.entries(notionData).forEach(([key, data]) => {
@@ -252,9 +277,10 @@ export default function App() {
     setRides([]);
     setLoading(true);
     setSyncError(null);
-    Promise.all([fetchRides(), fetchAllVotes()])
-      .then(([ridesData, notionData]) => {
+    Promise.all([fetchRides(), fetchAllVotes(), fetchCredits()])
+      .then(([ridesData, notionData, creditsData]) => {
         setRides(ridesData);
+        setCredits(creditsData);
         setPrefs(() => {
           const merged = { ...notionData };
           saveStorage(merged);
@@ -269,6 +295,17 @@ export default function App() {
     localStorage.clear();
     sessionStorage.clear();
     window.location.reload();
+  }, []);
+
+  const handleUpdateCredit = useCallback(async (pageId, dateUsed) => {
+    try {
+      await fetch(`${WORKER_URL}/credits`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageId, used: !!dateUsed, dateUsed }),
+      });
+      fetchCredits().then(setCredits).catch(() => {});
+    } catch (e) {}
   }, []);
 
   return (
@@ -387,6 +424,8 @@ export default function App() {
           setView={setView}
           prefs={prefs}
           rides={rides}
+          credits={credits}
+          onUpdateCredit={handleUpdateCredit}
           syncing={syncing}
           loading={loading}
           syncError={syncError}
