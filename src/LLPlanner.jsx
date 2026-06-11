@@ -506,7 +506,7 @@ function RankItem({ r, num, prefs, parkId, onLLStatus, rides = [] }) {
 
 // ── Rankings ──────────────────────────────────────────────────────────────────
 
-function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
+function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides, onSwitchToPrefs }) {
   const park        = PARKS.find((p) => p.id === parkId);
   const rides       = allRides.filter((r) => r.park === parkId);
   const activeRides = rides.filter((r) => !isClosed(r.id, prefs));
@@ -525,16 +525,19 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
   const tier1Conflict = activeRides.filter((r) => r.ll === "mp1" && r.id !== rdConfirmed && PEOPLE.some((p) => prefs[r.id]?.prefs?.[p.id] === "must"));
 
   const renderOverall = () => {
-    const nonDecided = activeRides.filter((r) => prefs[r.id]?.llStatus !== LL_STATUS.DONTBOOK && prefs[r.id]?.llStatus !== LL_STATUS.LATER && r.id !== rdConfirmed);
-    const topT1  = nonDecided.filter((r) => r.ll === "mp1").map((r) => ({ ...r, score: calcScore(r.id, prefs) })).sort((a, b) => b.score - a.score)[0];
-    const topT2  = nonDecided.filter((r) => r.ll === "mp2").map((r) => ({ ...r, score: calcScore(r.id, prefs) })).sort((a, b) => b.score - a.score).slice(0, 2);
-    const illR   = nonDecided.filter((r) => r.ll === "ill");
-    const llIds  = new Set([...(topT1 ? [topT1.id] : []), ...topT2.map((r) => r.id), ...illR.map((r) => r.id)]);
+    const allLLScored = activeRides.filter(r => r.ll !== "noll")
+      .map((r) => ({ ...r, score: calcScore(r.id, prefs) }))
+      .sort((a, b) => b.score - a.score);
+    const mpRides  = allLLScored.filter((r) => r.ll === "mp1" || r.ll === "mp2").slice(0, 6);
+    const cutoff   = mpRides.length === 6 ? mpRides[5].score : -Infinity;
+    const illRides = allLLScored.filter((r) => r.ll === "ill" && r.score >= cutoff);
+    const topRides = [...mpRides, ...illRides].sort((a, b) => b.score - a.score);
 
-    return scored.slice(0, 10).map((r, i) => {
+    if (!topRides.length) return <div style={{ fontSize:12, color:"#AAA", fontFamily:"'DM Sans',sans-serif" }}>Rate some rides to see Top Rides.</div>;
+
+    return topRides.map((r, i) => {
       const isConfRD = rdConfirmed === r.id;
       const isRDNom  = prefs[r.id]?.rdNom && !isConfRD;
-      const showLL   = llIds.has(r.id) && !isConfRD;
       const pill = r.ll === "ill" ? <span className="r-pill b-sp">SP</span> : r.ll === "mp1" ? <span className="r-pill b-mp1">T1</span> : r.ll === "mp2" ? <span className="r-pill b-mp2">T2</span> : null;
       return (
         <div className="r-item" key={r.id}>
@@ -544,8 +547,7 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
             <span className="r-name">{r.url ? <a href={r.url} target="_blank" rel="noreferrer" className="r-link">{r.displayName} ↗</a> : <span className="r-link">{r.displayName}</span>}</span>
             {isConfRD && <span className="r-pill rd-tag">RD ✓</span>}
             {isRDNom  && <span className="r-pill rd-tag">RD?</span>}
-            {showLL && pill}
-            {showLL && <span className="r-pill ll-tag">Book LL</span>}
+            {pill}
           </div>
         </div>
       );
@@ -737,11 +739,13 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
     );
   };
 
+  const prefsComplete = activeRides.every((r) => PEOPLE.every((p) => prefs[r.id]?.prefs?.[p.id]));
+
   return (
     <>
       <div className="rank-sec">
         <div className="rank-hdr" onClick={() => setOverallOpen((o) => !o)}>
-          <span className="rank-title">Overall Top 10</span>
+          <span className="rank-title">Top Rides</span>
           <span className={`chev${overallOpen ? " open" : ""}`}>▼</span>
         </div>
         {overallOpen && <div className="rank-body">{renderOverall()}</div>}
@@ -752,6 +756,13 @@ function Rankings({ parkId, prefs, onRdConfirm, onLLStatus, rides: allRides }) {
           <span className={`chev${llOpen ? " open" : ""}`}>▼</span>
         </div>
         {llOpen && <div className="rank-body">{renderLL()}</div>}
+      </div>
+      <div className="rank-sec" onClick={() => onSwitchToPrefs && onSwitchToPrefs(parkId)} style={{ cursor: "pointer" }}>
+        <div className="rank-hdr">
+          <span className="rank-title" style={{ color: prefsComplete ? "#2C5F8A" : "#C0392B" }}>
+            {prefsComplete ? "See Ride Preferences Here →" : "Complete Ride Preferences Here →"}
+          </span>
+        </div>
       </div>
     </>
   );
@@ -773,7 +784,7 @@ function selloutMinutes(rideId) {
   return h * 60 + min;
 }
 
-export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus, rides: allRides = [] }) {
+export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, onRdConfirm, onLLStatus, rides: allRides = [], onSwitchToPrefs, confirmedParks }) {
   const [collapsed, setCollapsed] = useState({});
   const isBeforeTrip = new Date() < TRIP_START;
   const [summaryMode, setSummaryModeRaw] = useState(() => {
@@ -912,10 +923,11 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
             onRdConfirm={onRdConfirm}
             onLLStatus={onLLStatus}
             rides={allRides}
+            onSwitchToPrefs={onSwitchToPrefs}
           />
         </div>
       )}
-      {(summaryMode === "prebook" || summaryMode === "all") && PARKS.map((park) => {
+      {(summaryMode === "prebook" || summaryMode === "all") && (confirmedParks ? PARKS.filter(p => confirmedParks.includes(p.id)) : PARKS).map((park) => {
         const rdConf  = prefs[`rdc_${park.id}`] ?? null;
         const rdRide  = rdConf ? allRides.find((r) => r.id === rdConf) : null;
         const { labeled, rankedSecond } = buildRankedLLs(park.id);
@@ -979,7 +991,8 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
 
 // ── ParkRides ─────────────────────────────────────────────────────────────────
 
-export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, syncing, onRdConfirm, onLLStatus, showRankings = true, rides: allRides = [] }) {
+export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, syncing, onRdConfirm, onLLStatus, showRankings = true, rides: allRides = [], onSwitchToPrefs }) {
+  const allRated = needsRating.length === 0;
   const [ratedOpen, setRatedOpen] = useState(false);
 
   const parkRides = allRides.filter((r) => r.park === parkId);
@@ -998,18 +1011,18 @@ export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, s
       {needsRating.map((ride) => (
         <RideCard key={ride.id} ride={ride} {...cardProps} />
       ))}
-      {ratedAndClosed.length > 0 && (
+      {!showRankings && ratedAndClosed.length > 0 && (
         <div className="rank-sec" style={{marginTop: '0', marginBottom: '10px'}}>
-          <div className="rank-hdr" onClick={() => setRatedOpen((o) => !o)}>
+          <div className="rank-hdr" onClick={() => !allRated && setRatedOpen((o) => !o)} style={{ cursor: allRated ? "default" : "pointer" }}>
             <span className="rank-title">Rated (or Closed) Rides ({ratedAndClosed.length})</span>
-            <span className={`chev${ratedOpen ? " open" : ""}`}>▼</span>
+            {!allRated && <span className={`chev${ratedOpen ? " open" : ""}`}>▼</span>}
           </div>
-          {ratedOpen && ratedAndClosed.map((ride) => (
+          {(allRated || ratedOpen) && ratedAndClosed.map((ride) => (
             <RideCard key={ride.id} ride={ride} {...cardProps} />
           ))}
         </div>
       )}
-      {showRankings && <Rankings parkId={parkId} prefs={prefs} onRdConfirm={onRdConfirm} onLLStatus={onLLStatus} rides={allRides} />}
+      {showRankings && <Rankings parkId={parkId} prefs={prefs} onRdConfirm={onRdConfirm} onLLStatus={onLLStatus} rides={allRides} onSwitchToPrefs={onSwitchToPrefs} />}
     </>
   );
 }
