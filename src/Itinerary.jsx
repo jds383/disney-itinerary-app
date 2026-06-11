@@ -126,30 +126,32 @@ function activityMatchesDay(ll, day) {
   const hasSingleDate = ll.date && !ll.dateEnd;
   const hasDaysOfWeek = ll.daysOfWeek && ll.daysOfWeek.length > 0;
 
+  // Park matching — if activity has a park, day must have matching parkId
+  const parkOk = !ll.park || (day.parkId && ll.park.toLowerCase() === day.parkId.toLowerCase());
+
+  // Resort matching helper
+  const resortOk = (resort) => !resort || resort === day.locStart || resort === day.locEnd;
+
   // Single date — exact match only (existing LL bookings, hotel entries, etc.)
   if (hasSingleDate && !hasDaysOfWeek) {
-    return ll.date === day.date;
+    return ll.date === day.date && parkOk;
   }
 
-  // Date range with days of week — check range + day of week + resort
+  // Date range with days of week — check range + day of week + resort + park
   if (hasDateRange && hasDaysOfWeek) {
     if (day.date < ll.date || day.date > ll.dateEnd) return false;
     const dow = DOW_ABBR[new Date(day.date + "T12:00:00").getDay()];
     if (!ll.daysOfWeek.includes(dow)) return false;
-    if (ll.resort) {
-      const resortMatch = ll.resort === day.locStart || ll.resort === day.locEnd;
-      if (!resortMatch) return false;
-    }
+    if (!resortOk(ll.resort)) return false;
+    if (!parkOk) return false;
     return true;
   }
 
-  // Date range without days of week — show every day in range at matching resort
+  // Date range without days of week — show every day in range at matching resort/park
   if (hasDateRange && !hasDaysOfWeek) {
     if (day.date < ll.date || day.date > ll.dateEnd) return false;
-    if (ll.resort) {
-      const resortMatch = ll.resort === day.locStart || ll.resort === day.locEnd;
-      if (!resortMatch) return false;
-    }
+    if (!resortOk(ll.resort)) return false;
+    if (!parkOk) return false;
     return true;
   }
 
@@ -158,10 +160,8 @@ function activityMatchesDay(ll, day) {
     if (day.date < ll.date) return false;
     const dow = DOW_ABBR[new Date(day.date + "T12:00:00").getDay()];
     if (!ll.daysOfWeek.includes(dow)) return false;
-    if (ll.resort) {
-      const resortMatch = ll.resort === day.locStart || ll.resort === day.locEnd;
-      if (!resortMatch) return false;
-    }
+    if (!resortOk(ll.resort)) return false;
+    if (!parkOk) return false;
     return true;
   }
 
