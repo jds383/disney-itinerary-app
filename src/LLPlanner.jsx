@@ -992,7 +992,6 @@ export function Summary({ prefs, syncing, onPref, onNotes, onClosed, onRdNom, on
 // ── ParkRides ─────────────────────────────────────────────────────────────────
 
 export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, syncing, onRdConfirm, onLLStatus, showRankings = true, rides: allRides = [], onSwitchToPrefs }) {
-  const allRated = needsRating.length === 0;
   const [ratedOpen, setRatedOpen] = useState(false);
 
   const parkRides = allRides.filter((r) => r.park === parkId);
@@ -1003,6 +1002,7 @@ export function ParkRides({ parkId, prefs, onPref, onNotes, onClosed, onRdNom, s
   const ratedAndClosed = parkRides.filter((r) =>
     isClosed(r.id, prefs) || totalVotes(r.id, prefs) === PEOPLE.length
   );
+  const allRated = needsRating.length === 0;
 
   const cardProps = { prefs, onPref, onNotes, onClosed, onRdNom, syncing };
 
