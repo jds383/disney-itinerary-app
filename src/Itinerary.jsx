@@ -386,7 +386,7 @@ function LLRow({ h, color, borderBottom, onSkip, rides = [] }) {
   const isFlight = h.type === "Flight";
   const locationPart = !isFlight && (h.location ? h.location : (h.resort || null));
   const collapsibleText = locationPart && h.subtext ? `${locationPart} · ${h.subtext}` : (h.subtext || locationPart || null);
-  const timeStr  = (h.startTime && h.startTime !== "TBD") ? h.startTime + (h.endTime ? ` – ${h.endTime}` : "") : "";
+  const timeStr  = h.startTime ? h.startTime + (h.endTime ? ` – ${h.endTime}` : "") : "";
   const partyStr = h.party && h.party !== "All" ? ` · ${h.party}` : "";
   const fullText = isFlight
     ? [h.startTime, h.rideName, h.endTime].filter(Boolean).join(" · ") + (rideUrl ? " ↗" : "")
