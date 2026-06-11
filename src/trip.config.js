@@ -17,4 +17,5 @@ export const tripConfig = {
     { id: "r", name: "Rebecca" },
   ],
   parks: ["mk", "ep", "hs", "ak"],
+  family: "S",
 }
